@@ -1,0 +1,56 @@
+instance store: not persisted
+ebs: persisted
+
+terminate: can't be restarted.
+
+todo:
+create backup ebs store
+set up backups
+(guard against deletion)
+(encrypt with dm-crypt)
+create ami image - or just create each time with user-data? http://alestic.com/2009/06/ec2-user-data-scripts
+
+Costs
+-----
+ec2: $0.095/hour (small) / $0.025/hour (micro)
+ebs: $.11/GB/mo; $.11/million I/O
+ebs -> s3: $.15/GB/mo; .01/1000 PUTs; .01/10000 GETs (around 4MB/block)
+s3: .14/GB/mo
+
+data transfer: $.10/GB in, $.15/GB out
+
+Free tier (per month):
+750 hours micro ec2
+750 hours ELB + 15GB data
+10GB ebs + 1M I/O + 1GB snapshot + 10K snapshot GETs + 1K snapshot PUTs
+5GB S3 + 20K GETs + 1K PUTs
+15GB transit in + 15GB transit out
+25 hours SimpleDB + 1GB storage
+100K requests SimpleQueueService
+100K requests + 100K Http hits + 1K emails SimpleNotificationService
+10 cloudwatch alarms
+
+----
+ec2-run-instances ami-919da8e5 --instance-type t1.micro -k awskey
+
+ec2-create-volume -s 15 -z eu-west-1b
+ec2-attach-volume vol-aca405c5 -i i-2e252a59 -d /dev/sdc
+
+# on server:
+cfdisk /dev/sdc
+mkfs -T ext4 /dev/sdc1
+cat >> fstab << EOF
+/dev/sdc1       /media/backup auto      defaults 0 0
+EOF
+mount /media/backup
+chown backup /media/backup
+# grant ssh access to root@faith
+apt-get install rdiff-backup
+
+cat >>/etc/apt/sources.list << EOF
+deb http://eu-west-1.ec2.archive.ubuntu.com/ubuntu/ lucid multiverse
+deb-src http://eu-west-1.ec2.archive.ubuntu.com/ubuntu/ lucid multiverse
+deb http://security.ubuntu.com/ubuntu lucid-security multiverse
+deb-src http://security.ubuntu.com/ubuntu lucid-security multiverse
+EOF
+apt-get install ec2-api-tools

@@ -1,0 +1,18 @@
+#cloud-config
+
+# run apt-get upgrade at first boot
+apt_upgrade: true
+
+# TODO; make this region independent?
+#apt_sources:
+# - source: deb http://eu-west-1.ec2.archive.ubuntu.com/ubuntu/ lucid multiverse
+# - source: deb-src http://eu-west-1.ec2.archive.ubuntu.com/ubuntu/ lucid multiverse
+# - source: deb http://security.ubuntu.com/ubuntu lucid-security multiverse
+# - source: deb-src http://security.ubuntu.com/ubuntu lucid-security multiverse
+
+packages:
+ - rdiff-backup
+
+ssh_authorized_keys:
+ - ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA27x4CDEr9ZLFVNK4SkmJotP1qIXgTxxRJYw1sZVlcmhUBlTO0Y0oUKUMVYJZz3E15kqJ5DcQtjX8sA1ViXOn55xoDUe/2gUxphltIO2zAHtd+5SNSklhnL7qxAz6eGImQUXpIFrOSDfnFisXX2Tewzs/wE6hRS76F3lon2vPoN7AOJ4P3xQ9oMsHEz1tUWCnKLL/LNL46yeQ+6c8feMzTqXEgQzo60TDWvcxcpcjP2qC5ySEPxSONQJpuB265DQWSYWzirvujtftZafy/+m3/F/QZzWwDXOvLCgX8LNtEOtwn7+IMFUiBvsQUGnt8qS3lEYzz737r6fG/vdEunXItw== amazon-id
+
