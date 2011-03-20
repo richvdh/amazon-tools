@@ -2,5 +2,5 @@
 
 set -e
 
-. ~/amazon/env
+. /etc/amazon/env
 ec2-terminate-instances "$@"

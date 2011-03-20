@@ -61,14 +61,14 @@ done
 echo "" >&2
 
 echo -n "waiting for ssh to work" >&2
-while ! ssh -o StrictHostKeyChecking=no -i ~/amazon/keys/id_rsa -q ubuntu@$ip true; do
+while ! ssh -o StrictHostKeyChecking=no -i /etc/amazon/keys/id_rsa -q ubuntu@$ip true; do
    echo -n . >&2
    sleep 1
 done
 echo >&2
 
 echo "mounting backup drive" >&2
-ssh ubuntu@$ip -i ~/amazon/keys/id_rsa sudo mount /dev/sdc1 /mnt
+ssh ubuntu@$ip -i /etc/amazon/keys/id_rsa sudo mount /dev/sdc1 /mnt
 
 # finally, write the results
 echo -e "instance:\t$instance_id"
