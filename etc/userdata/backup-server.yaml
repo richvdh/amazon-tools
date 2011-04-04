@@ -1,9 +1,11 @@
 #cloud-config
+#
+# userdata config for backup-server: installs rdiff-backup and grants ssh access to ubuntu@
+
 
 # run apt-get upgrade at first boot
 apt_upgrade: true
 
-# TODO; make this region independent?
 #apt_sources:
 # - source: deb http://eu-west-1.ec2.archive.ubuntu.com/ubuntu/ lucid multiverse
 # - source: deb-src http://eu-west-1.ec2.archive.ubuntu.com/ubuntu/ lucid multiverse
