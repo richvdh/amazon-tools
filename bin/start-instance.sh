@@ -5,10 +5,8 @@
 # contains the following (among other stuff):
 #   ip  - ip address of instance
 #   instance_id - id of instance
+#   id_rsa - ssh key which has perms for ubuntu@$ip
 #
-# TODO: make this check ssh host keys? (otherwise we get intermittent
-#       failures) generate an ssh host key ourselves, attach it to
-#       the config, return a known_hosts config or somesuch
 # TODO: use snapshots rather than an EBS volume, to enable free use of
 #       availability zones (and to enable attaching at image start time)
 # TODO: figure out how to get most recent ubuntu AMI
@@ -42,6 +40,7 @@ echo "building ssh keys..." >&2
 for i in rsa dsa; do
     ssh-keygen -f ssh_host_${i}_key -t ${i} -N "" > /dev/null
 done
+ssh-keygen -f id_rsa -t rsa -N "" > /dev/null
 
 echo "building user-data..." >&2
 (
@@ -54,6 +53,9 @@ echo "building user-data..." >&2
         echo -n "    ${i}_public: "
         cat ssh_host_${i}_key.pub
     done
+    echo "ssh_authorized_keys:"
+    echo -n " - "
+    cat id_rsa.pub
 ) > ssh-keys.yaml
 "$toolsdir/write-mime-multipart" --output=userdata.txt \
     "$@" "ssh-keys.yaml" "/etc/amazon/userdata/touch-boot-complete.conf"
@@ -100,7 +102,7 @@ echo "building known hosts... " >&2
 
 echo -n "waiting for boot to complete" >&2
 a=0
-while ! ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i /etc/amazon/keys/id_rsa -q ubuntu@$ip \
+while ! ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa -q ubuntu@$ip \
        test -f /var/run/boot-complete; do
     if [ $a -gt 100 ]; then
 	echo -e "\nGave up after 100 secs" >&2

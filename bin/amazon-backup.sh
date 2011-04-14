@@ -15,7 +15,7 @@ trap 'su amazon -c "/usr/local/amazon/stop-instance.sh '$out'"' EXIT
 su amazon -c "/usr/local/amazon/attach-volume.sh ${BACKUP_VOL} $instance_id /dev/sdc"
 
 echo "mounting backup drive" >&2
-ssh -o StrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i/etc/amazon/keys/id_rsa ubuntu@$ip sudo mount /dev/sdc1 /mnt
+ssh -o StrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -iid_rsa ubuntu@$ip sudo mount /dev/sdc1 /mnt
 
 backup_path="backup@$ip::/mnt"
 echo "running backup to $backup_path"
