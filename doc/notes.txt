@@ -4,11 +4,8 @@ ebs: persisted
 terminate: can't be restarted.
 
 todo:
-create backup ebs store
-set up backups
-(guard against deletion)
+switch to snapshots
 (encrypt with dm-crypt)
-create ami image - or just create each time with user-data? http://alestic.com/2009/06/ec2-user-data-scripts
 
 Costs
 -----
