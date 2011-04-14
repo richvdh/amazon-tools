@@ -40,7 +40,7 @@ terminate_instance() {
 
 echo "building ssh keys..." >&2
 for i in rsa dsa; do
-    ssh-keygen -f ssh_host_${i}_key -t ${i} -N "" >&2
+    ssh-keygen -f ssh_host_${i}_key -t ${i} -N "" > /dev/null
 done
 
 echo "building user-data..." >&2
@@ -111,25 +111,6 @@ while ! ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i /etc
     sleep 1
 done
 echo >&2
-
-
-echo -n "attaching volume" >&2
-ec2-attach-volume vol-aca405c5 -i $instance_id -d /dev/sdc >/dev/null
-a=0
-while state=$(ec2-describe-volumes vol-aca405c5 | grep '^ATTACHMENT' | \
-    cut -f5) && [ "$state" = 'attaching' ]; do
-    if [ $a -gt 100 ]; then
-	echo -e "\nGave up after 100 secs" >&2
-	exit 1
-    fi
-    let a=a+1
-    echo -n "." >&2
-    sleep 1
-done
-echo "" >&2
-
-echo "mounting backup drive" >&2
-ssh -o StrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i/etc/amazon/keys/id_rsa ubuntu@$ip sudo mount /dev/sdc1 /mnt
 
 # finally, write the results and remove the exit trap
 echo $wd
