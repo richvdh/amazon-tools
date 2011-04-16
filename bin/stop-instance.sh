@@ -2,10 +2,9 @@
 
 set -e
 
-. /etc/amazon/env
-
+toolsdir=$(cd `dirname "$0"` && pwd)
 wd="$1"
 instance_id=`cat "$wd/instance_id"`
-ec2-terminate-instances "$instance_id"
+"${toolsdir}/aws" terminate-instances "$instance_id"
 rm -r "$wd"
 

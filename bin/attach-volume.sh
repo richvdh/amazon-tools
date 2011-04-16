@@ -9,17 +9,16 @@ if [ $# -ne 3 ]; then
     exit 1
 fi
 
-. /etc/amazon/env
-
 vol_id="$1"
 instance_id="$2"
 device="$3"
+toolsdir=$(cd `dirname "$0"` && pwd)
 
 echo -n "attaching volume $vol_id" >&2
-ec2-attach-volume $vol_id -i $instance_id -d $device >/dev/null
+"${toolsdir}/aws" attach-volume $vol_id -i $instance_id -d $device >/dev/null
 a=0
-while state=$(ec2-describe-volumes $vol_id | grep '^ATTACHMENT' | \
-    cut -f5) && [ "$state" = 'attaching' ]; do
+while state=$("${toolsdir}/aws" describe-volumes $vol_id | grep $vol_id | \
+    cut -d'|' -f5 | tr -d ' ') && [ "$state" != 'in-use' ]; do
     if [ $a -gt 100 ]; then
 	echo -e "\nGave up after 100 secs" >&2
 	exit 1
@@ -30,3 +29,4 @@ while state=$(ec2-describe-volumes $vol_id | grep '^ATTACHMENT' | \
 done
 echo "" >&2
 
+"${toolsdir}/aws" describe-volumes $vol_id

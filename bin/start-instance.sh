@@ -13,11 +13,8 @@
 
 set -e
 
-. /etc/amazon/env
-
 # find the tools
-cd `dirname "$0"`
-toolsdir=`pwd`
+toolsdir=$(cd `dirname "$0"` && pwd)
 
 # make work dir
 wd="/var/run/amazon/$$"
@@ -30,7 +27,7 @@ trap 'terminate_instance' EXIT
 terminate_instance() {
     echo "terminating instance...">&2
     if [ -f "$wd/instance_id" ]; then
-	ec2-terminate-instances `cat "$wd/instance_id"`
+	"${toolsdir}/aws" terminate-instances `cat "$wd/instance_id"`
     fi
     cd /
     rm -r "$wd"
@@ -66,23 +63,23 @@ gzip userdata.txt
 # ids come from http://uec-images.ubuntu.com/releases/10.04/release/
 #  ami-f6340182 \
 echo "starting instance..." >&2
-"$EC2_HOME/bin/ec2-run-instances" \
+"${toolsdir}/aws" run-instances \
+ --simple \
+ -instance-type t1.micro \
+ -instance-initiated-shutdown-behavior terminate \
+ -user-data-file userdata.txt.gz \
+ -availability-zone eu-west-1b \
  ami-3d1f2b49 \
- -k awskey \
- --instance-type t1.micro \
- --instance-initiated-shutdown-behavior terminate \
- --user-data-file userdata.txt.gz \
- --availability-zone eu-west-1b \
  > "run-output" || { cat "run-output" >&2; exit 1; }
 
-instance_id=`grep '^INSTANCE' "run-output" | cut -f2`
+instance_id=`cat "run-output" | cut -f1`
 echo "instance id: $instance_id" >&2
 echo $instance_id > instance_id
 
 echo -n "waiting for instance to start" >&2
 a=0
-while state=$(ec2-describe-instances "$instance_id" | grep ^INSTANCE | \
-    cut -f6) && [ "$state" = 'pending' ]; do
+while state=$("${toolsdir}/aws" describe-instances --simple "$instance_id" | \
+    cut -f2) && [ "$state" = 'pending' ]; do
     if [ $a -gt 100 ]; then
 	echo -e "\nGave up after 100 secs" >&2
 	exit 1
@@ -93,16 +90,28 @@ while state=$(ec2-describe-instances "$instance_id" | grep ^INSTANCE | \
 done
 echo "" >&2
 
-ip=`ec2-describe-instances "$instance_id" | grep '^INSTANCE' | cut -f 17`
+ip=`"${toolsdir}/aws" describe-instances "$instance_id" | grep "$instance_id" | cut -d '|' -f 13 | tr -d ' '`
 echo "ip: $ip" >&2
 echo $ip > ip
 
 echo "building known hosts... " >&2
 (echo -n "$ip "; cat ssh_host_rsa_key.pub) > known_hosts
 
+echo -n "waiting for ssh to work" >&2
+a=0
+while ! ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa ubuntu@$ip echo ok >&2; do
+    if [ $a -gt 100 ]; then
+	echo -e "\nGave up after 100 secs" >&2
+	exit 1
+    fi
+    let a=a+1
+    echo -n . >&2
+    sleep 1
+done
+
 echo -n "waiting for boot to complete" >&2
 a=0
-while ! ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa -q ubuntu@$ip \
+while ! ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa ubuntu@$ip \
        test -f /var/run/boot-complete; do
     if [ $a -gt 100 ]; then
 	echo -e "\nGave up after 100 secs" >&2
