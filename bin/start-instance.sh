@@ -99,7 +99,7 @@ echo "building known hosts... " >&2
 
 echo -n "waiting for ssh to work" >&2
 a=0
-while ! ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa ubuntu@$ip echo ok >&2; do
+while ! ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa ubuntu@$ip echo ok &>/dev/null; do
     if [ $a -gt 100 ]; then
 	echo -e "\nGave up after 100 secs" >&2
 	exit 1
@@ -108,6 +108,7 @@ while ! ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_r
     echo -n . >&2
     sleep 1
 done
+echo >&2
 
 echo -n "waiting for boot to complete" >&2
 a=0

@@ -13,7 +13,6 @@ ip=`cat ip`
 trap 'su amazon -c "/usr/local/amazon/stop-instance.sh '$out'"' EXIT
 
 su amazon -c "/usr/local/amazon/attach-volume.sh ${BACKUP_VOL} $instance_id /dev/sdc"
-sleep 15
 
 echo "mounting backup drive" >&2
 ssh -o StrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -iid_rsa ubuntu@$ip sudo mount /dev/sdc1 /mnt
@@ -26,7 +25,7 @@ backup()
 {
     path="$1"; shift
     conf="$1"; shift
-    args="--terminal-verbosity 5 -v 8 --force \
+    args="--terminal-verbosity 3 -v 8 --force \
           --exclude-globbing-filelist /etc/backup/exclusions.common"
 
     # the use of process substitution rather than a simple pipe here
@@ -37,7 +36,7 @@ backup()
     #
     # rdiff-backup uses subprocess.py, which hardcodes /bin/sh, which 
     # doesn't support process substitutions. sigh.
-    schema="/bin/bash -c 'ssh -C -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts \"%s\" rdiff-backup --server < <(cstream -v 1 -t 20000)'"
+    schema="/bin/bash -c 'ssh -C -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts \"%s\" rdiff-backup --server < <(cstream -v 1 -t 40000)'"
 
     if [ -r /etc/backup/exclusions.${conf} ]; then
         args="$args --exclude-globbing-filelist /etc/backup/exclusions.${conf}"

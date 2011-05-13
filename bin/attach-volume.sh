@@ -29,4 +29,6 @@ while state=$("${toolsdir}/aws" describe-volumes $vol_id | grep $vol_id | \
 done
 echo "" >&2
 
-"${toolsdir}/aws" describe-volumes $vol_id
+#"${toolsdir}/aws" describe-volumes $vol_id
+# todo: replace with something that sshes in and awaits the arrival of the device?
+sleep 15
