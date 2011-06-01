@@ -60,6 +60,7 @@ echo "building user-data..." >&2
 #cat userdata.txt >&2
 gzip userdata.txt
 
+AMAZON_ZONE=${AMAZON_ZONE:-eu-west-1b}
 # ids come from http://uec-images.ubuntu.com/releases/10.04/release/
 #  ami-f6340182 \
 echo "starting instance..." >&2
@@ -68,7 +69,7 @@ echo "starting instance..." >&2
  -instance-type t1.micro \
  -instance-initiated-shutdown-behavior terminate \
  -user-data-file userdata.txt.gz \
- -availability-zone eu-west-1b \
+ -availability-zone $AMAZON_ZONE \
  ami-3d1f2b49 \
  > "run-output" || { cat "run-output" >&2; exit 1; }
 

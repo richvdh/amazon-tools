@@ -2,17 +2,21 @@
 
 set -e
 
+amazon_dir=$(cd `dirname $0`; pwd)
+
 . /etc/backup/config
 
-out=`su amazon -c "/usr/local/amazon/start-instance.sh /etc/amazon/userdata/backup-server.yaml /etc/amazon/userdata/init-ssh-key.sh"`
+export AMAZON_ZONE
+
+out=`su amazon -c "${amazon_dir}/start-instance.sh /etc/amazon/userdata/backup-server.yaml /etc/amazon/userdata/init-ssh-key.sh"`
 cd "$out"
 
 instance_id=`cat instance_id`
 ip=`cat ip`
 
-trap 'su amazon -c "/usr/local/amazon/stop-instance.sh '$out'"' EXIT
+trap 'su amazon -c "'${amazon_dir}'/stop-instance.sh '$out'"' EXIT
 
-su amazon -c "/usr/local/amazon/attach-volume.sh ${BACKUP_VOL} $instance_id /dev/sdc"
+su amazon -c "${amazon_dir}/attach-volume.sh ${BACKUP_VOL} $instance_id /dev/sdc"
 
 echo "mounting backup drive" >&2
 ssh -o StrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -iid_rsa ubuntu@$ip sudo mount /dev/sdc1 /mnt
