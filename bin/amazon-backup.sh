@@ -2,7 +2,7 @@
 
 set -e
 
-amazon_dir=$(cd `dirname $0`; pwd)
+amazon_dir=$(dirname "$(readlink -f "$0")")
 
 . /etc/backup/config
 
