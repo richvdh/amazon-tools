@@ -61,8 +61,27 @@ echo "building user-data..." >&2
 gzip userdata.txt
 
 AMAZON_ZONE=${AMAZON_ZONE:-eu-west-1b}
-# ids come from http://uec-images.ubuntu.com/releases/10.04/release/
-#  ami-f6340182 \
+region=`echo $AMAZON_ZONE | perl -ne '/([a-z-]*[0-9])/ && print $1'`
+
+if [ -z "$region" ]; then
+    echo "unable to parse zone $AMAZON_ZONE" >&2
+    exit 1
+fi
+
+
+# FIXME: aws doesn't hande instance-initiated-shutdown-behaviour,
+# so any vms which are shutdown end up with their EBS root fs
+# still allocated.
+
+# instance ids available at
+#   http://uec-images.ubuntu.com/releases/10.04
+#
+# 64-bit ebs eu-west-1
+#
+#  release-20101020   - ami-f6340182
+#  release-20110201.1 - ami-3d1f2b49
+#  release-20110719   - ami-5c417128
+
 echo "starting instance..." >&2
 "${toolsdir}/aws" run-instances \
  --simple \
@@ -70,7 +89,7 @@ echo "starting instance..." >&2
  -instance-initiated-shutdown-behavior terminate \
  -user-data-file userdata.txt.gz \
  -availability-zone $AMAZON_ZONE \
- ami-3d1f2b49 \
+ ami-5c417128 \
  > "run-output" || { cat "run-output" >&2; exit 1; }
 
 instance_id=`cat "run-output" | cut -f1`
