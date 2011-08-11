@@ -240,6 +240,7 @@ $iam_version = "2010-05-08";
 								 ["snapshot s" => "BlockDeviceMapping.N.Ebs.SnapshotId"],
 								 ["volume-size" => "BlockDeviceMapping.N.Ebs.VolumeSize"],
 								 ["delete-on-termination" => "BlockDeviceMapping.N.Ebs.DeleteOnTermination"],
+								 ["instance-initiated-shutdown-behavior" => "InstanceInitiatedShutdownBehavior"],
 								 ]],
         ["ec2", "start-instances start", StartInstances, [["", InstanceIdN]]],
         ["ec2", "stop-instances stop", StopInstances, [["", InstanceIdN]]],

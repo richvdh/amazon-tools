@@ -69,10 +69,6 @@ if [ -z "$region" ]; then
 fi
 
 
-# FIXME: aws doesn't hande instance-initiated-shutdown-behaviour,
-# so any vms which are shutdown end up with their EBS root fs
-# still allocated.
-
 # instance ids available at
 #   http://uec-images.ubuntu.com/releases/10.04
 #
