@@ -28,26 +28,12 @@ Free tier (per month):
 10 cloudwatch alarms
 
 ----
-ec2-run-instances ami-919da8e5 --instance-type t1.micro -k awskey
-
-ec2-create-volume -s 15 -z eu-west-1b
-ec2-attach-volume vol-aca405c5 -i i-2e252a59 -d /dev/sdc
+AMAZON_ZONE=eu-west-1a bin/start-instance
+bin/aws create-volume -s 15 -z eu-west-1b # untested
+bin/aws attach-volume vol-82f378eb -i i-6cfa9b1a -d /dev/sdc
 
 # on server:
-cfdisk /dev/sdc
-mkfs -T ext4 /dev/sdc1
-cat >> fstab << EOF
-/dev/sdc1       /media/backup auto      defaults 0 0
-EOF
-mount /media/backup
-chown backup /media/backup
-# grant ssh access to root@faith
-apt-get install rdiff-backup
-
-cat >>/etc/apt/sources.list << EOF
-deb http://eu-west-1.ec2.archive.ubuntu.com/ubuntu/ lucid multiverse
-deb-src http://eu-west-1.ec2.archive.ubuntu.com/ubuntu/ lucid multiverse
-deb http://security.ubuntu.com/ubuntu lucid-security multiverse
-deb-src http://security.ubuntu.com/ubuntu lucid-security multiverse
-EOF
-apt-get install ec2-api-tools
+sudo cfdisk /dev/sdc # create new primary partition
+sudo mkfs -T ext4 /dev/sdc1
+sudo mount /dev/sdc1 /mnt
+sudo mkdir /mnt/{home,etc,local,var}
