@@ -17,8 +17,8 @@ toolsdir=$(cd `dirname "$0"` && pwd)
 echo -n "attaching volume $vol_id" >&2
 "${toolsdir}/aws" attach-volume $vol_id -i $instance_id -d $device >/dev/null
 a=0
-while state=$("${toolsdir}/aws" describe-volumes $vol_id | grep $vol_id | \
-    cut -d'|' -f5 | tr -d ' ') && [ "$state" != 'in-use' ]; do
+while state=$("${toolsdir}/aws" --xml dvol $vol_id | grep '<status>' | head -n 1 | \
+    sed -e 's/.*<status>//' -e 's/<.*//') && [ "$state" = 'attaching' ]; do
     if [ $a -gt 100 ]; then
 	echo -e "\nGave up after 100 secs" >&2
 	exit 1
