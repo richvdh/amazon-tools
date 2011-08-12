@@ -12,13 +12,19 @@ fi
 vol_id="$1"
 instance_id="$2"
 device="$3"
-toolsdir=$(cd `dirname "$0"` && pwd)
+amazon_dir=$(dirname "$(readlink -f "$0")")
 
 echo -n "attaching volume $vol_id" >&2
-"${toolsdir}/aws" attach-volume $vol_id -i $instance_id -d $device >/dev/null
+IFS=" "
+out=`"${amazon_dir}/aws" --xml attach-volume $vol_id -i $instance_id -d $device`
+if echo $out | grep -i '<error>' > /dev/null; then
+    echo -e "\nerror attaching volume:" >&2
+    echo $out >&2
+    exit 1
+fi
+
 a=0
-while state=$("${toolsdir}/aws" --xml dvol $vol_id | grep '<status>' | head -n 1 | \
-    sed -e 's/.*<status>//' -e 's/<.*//') && [ "$state" = 'attaching' ]; do
+while ! "${amazon_dir}/aws" --xml dvol $vol_id | grep '<status>attached</status>' >/dev/null; do
     if [ $a -gt 100 ]; then
 	echo -e "\nGave up after 100 secs" >&2
 	exit 1
@@ -28,7 +34,3 @@ while state=$("${toolsdir}/aws" --xml dvol $vol_id | grep '<status>' | head -n 1
     sleep 1
 done
 echo "" >&2
-
-#"${toolsdir}/aws" describe-volumes $vol_id
-# todo: replace with something that sshes in and awaits the arrival of the device?
-sleep 15

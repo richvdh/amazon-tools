@@ -14,7 +14,12 @@
 set -e
 
 # find the tools
-toolsdir=$(cd `dirname "$0"` && pwd)
+amazon_dir=$(dirname "$(readlink -f "$0")")
+if [ -d "${amazon_dir}/../etc" ]; then
+    etc_dir="${amazon_dir}/../etc"
+else
+    etc_dir="/etc/amazon"
+fi
 
 # make work dir
 wd="/var/run/amazon/$$"
@@ -27,7 +32,7 @@ trap 'terminate_instance' EXIT
 terminate_instance() {
     echo "terminating instance...">&2
     if [ -f "$wd/instance_id" ]; then
-	"${toolsdir}/aws" terminate-instances `cat "$wd/instance_id"`
+	"${amazon_dir}/aws" terminate-instances `cat "$wd/instance_id"`
     fi
     cd /
     rm -r "$wd"
@@ -54,8 +59,8 @@ echo "building user-data..." >&2
     echo -n " - "
     cat id_rsa.pub
 ) > ssh-keys.yaml
-"$toolsdir/write-mime-multipart" --output=userdata.txt \
-    "$@" "ssh-keys.yaml" "/etc/amazon/userdata/touch-boot-complete.conf"
+"$amazon_dir/write-mime-multipart" --output=userdata.txt \
+    "$@" "ssh-keys.yaml" "${etc_dir}/userdata/touch-boot-complete.conf"
 
 #cat userdata.txt >&2
 gzip userdata.txt
@@ -79,7 +84,7 @@ fi
 #  release-20110719   - ami-5c417128
 
 echo "starting instance..." >&2
-"${toolsdir}/aws" run-instances \
+"${amazon_dir}/aws" run-instances \
  --simple \
  -instance-type t1.micro \
  -instance-initiated-shutdown-behavior terminate \
@@ -101,7 +106,7 @@ echo $instance_id > instance_id
 
 echo -n "waiting for instance to start" >&2
 a=0
-while state=$("${toolsdir}/aws" describe-instances --simple "$instance_id" | \
+while state=$("${amazon_dir}/aws" describe-instances --simple "$instance_id" | \
     cut -f2) && [ "$state" = 'pending' ]; do
     if [ $a -gt 100 ]; then
 	echo -e "\nGave up after 100 secs" >&2
@@ -113,7 +118,7 @@ while state=$("${toolsdir}/aws" describe-instances --simple "$instance_id" | \
 done
 echo "" >&2
 
-ip=`"${toolsdir}/aws" describe-instances "$instance_id" | grep "$instance_id" | cut -d '|' -f 13 | tr -d ' '`
+ip=`"${amazon_dir}/aws" describe-instances "$instance_id" | grep "$instance_id" | cut -d '|' -f 13 | tr -d ' '`
 echo "ip: $ip" >&2
 echo $ip > ip
 
