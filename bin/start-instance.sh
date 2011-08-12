@@ -90,6 +90,13 @@ echo "starting instance..." >&2
 
 instance_id=`cat "run-output" | cut -f1`
 echo "instance id: $instance_id" >&2
+
+if [ -z "$instance_id" ]; then
+    echo "unable to read instance-id from output:" >&2
+    cat "run-output" >&2
+    exit 1
+fi
+
 echo $instance_id > instance_id
 
 echo -n "waiting for instance to start" >&2
