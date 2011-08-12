@@ -1,0 +1,10 @@
+#cloud-config
+#
+# userdata config for simple ssh server
+
+packages:
+ - at
+
+runcmd:
+ - echo "/sbin/shutdown -h +5" | at now + 1 hour
+
