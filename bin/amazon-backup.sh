@@ -8,7 +8,7 @@ amazon_dir=$(dirname "$(readlink -f "$0")")
 
 export AMAZON_ZONE
 
-out=`su amazon -c "${amazon_dir}/start-instance.sh /etc/amazon/userdata/backup-server.yaml /etc/amazon/userdata/init-ssh-key.sh"`
+out=`su amazon -c "${amazon_dir}/start-instance.sh /etc/amazon/userdata/backup-server.yaml /etc/amazon/userdata/backups-ssh-key.sh"`
 cd "$out"
 
 instance_id=`cat instance_id`
@@ -16,14 +16,13 @@ ip=`cat ip`
 
 trap 'su amazon -c "'${amazon_dir}'/stop-instance.sh '$out'"' EXIT
 
-su amazon -c "${amazon_dir}/attach-volume.sh ${BACKUP_VOL} $instance_id /dev/sdc1"
+su amazon -c "${amazon_dir}/attach-volume.sh ${BACKUP_VOL} $instance_id /dev/sdc"
 
-echo "mounting backup drive" >&2
+echo "mounting backup drive"
 ssh -o StrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -iid_rsa ubuntu@$ip sudo mount /dev/sdc1 /mnt
 
 backup_path="backup@$ip::/mnt"
 echo "running backup to $backup_path"
-
 
 backup()
 {
@@ -40,7 +39,12 @@ backup()
     #
     # rdiff-backup uses subprocess.py, which hardcodes /bin/sh, which 
     # doesn't support process substitutions. sigh.
-    schema="/bin/bash -c 'ssh -C -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts \"%s\" rdiff-backup --server < <(cstream -v 1 -t 40000)'"
+    #
+    # if this fails with a public key error, check that root@ has been
+    # given permission to ssh to backup@; in particular, check out 
+    # userdata/backups-ssh-key.sh
+    schema="/bin/bash -c 'ssh -C -oStrictHostKeyChecking=yes -oUserKnownHostsFile=\"$out/known_hosts\" \"%s\" rdiff-backup --server < <(cstream -v 1 -t 40000)'"
+    echo "using schema: $schema"
 
     if [ -r /etc/backup/exclusions.${conf} ]; then
         args="$args --exclude-globbing-filelist /etc/backup/exclusions.${conf}"
@@ -53,8 +57,5 @@ backup()
     rdiff-backup --remote-schema "$schema" --force --remove-older-than 1M12h "$dest"
 }
 
-backup /home home --include=/home/mysql/log --exclude=/home/mysql
-backup /etc etc
-backup /usr/local local
-backup /var/lib/cyrus var
+run_backups
 
