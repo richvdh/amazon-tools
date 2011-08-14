@@ -16,7 +16,9 @@ ip=`cat ip`
 
 trap 'su amazon -c "'${amazon_dir}'/stop-instance.sh '$out'"' EXIT
 
-su amazon -c "${amazon_dir}/attach-volume.sh ${BACKUP_VOL} $instance_id /dev/sdc"
+# faith's backup device is a disk; buffy's is a partition...
+BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdc}
+su amazon -c "${amazon_dir}/attach-volume.sh ${BACKUP_VOL} $instance_id ${BACKUP_DEVICE}"
 
 echo "mounting backup drive"
 ssh -o StrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -iid_rsa ubuntu@$ip sudo mount /dev/sdc1 /mnt
