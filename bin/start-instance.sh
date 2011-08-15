@@ -108,8 +108,8 @@ echo -n "waiting for instance to start" >&2
 a=0
 while state=$("${amazon_dir}/aws" describe-instances --simple "$instance_id" | \
     cut -f2) && [ "$state" = 'pending' ]; do
-    if [ $a -gt 100 ]; then
-	echo -e "\nGave up after 100 secs" >&2
+    if [ $a -gt 200 ]; then
+	echo -e "\nGave up after 200 secs" >&2
 	exit 1
     fi
     let a=a+1
