@@ -128,8 +128,9 @@ echo "building known hosts... " >&2
 echo -n "waiting for ssh to work" >&2
 a=0
 while ! ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa ubuntu@$ip echo ok &>/dev/null; do
-    if [ $a -gt 100 ]; then
-	echo -e "\nGave up after 100 secs" >&2
+    if [ $a -gt 200 ]; then
+	echo -e "\nGave up after 200 secs; giving one last try" >&2
+        ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa ubuntu@$ip echo ok 
 	exit 1
     fi
     let a=a+1
