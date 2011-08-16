@@ -31,13 +31,9 @@ Free tier (per month):
 AMAZON_ZONE=eu-west-1a bin/start-instance
 bin/aws create-volume -s 15 -z eu-west-1b # untested
 
-# this makes the EBS into a disk rather than a partition; unsure
-# if that is the best strategy.
-
-bin/attach-volume vol-82f378eb i-6cfa9b1a /dev/sdc
+bin/attach-volume vol-82f378eb i-6cfa9b1a /dev/sdc1
 
 # on server:
-sudo cfdisk /dev/sdc # create new primary partition
 sudo mkfs -T ext4 /dev/sdc1
 sudo mount /dev/sdc1 /mnt
 sudo mkdir /mnt/{home,etc,usr/local,var} # or whatever
