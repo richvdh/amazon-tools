@@ -120,7 +120,7 @@ while state=$("${amazon_dir}/aws" describe-instances --simple "$instance_id" | \
 done
 echo "" >&2
 
-ip=`"${amazon_dir}/aws" describe-instances "$instance_id" | grep "$instance_id" | cut -d '|' -f 13 | tr -d ' '`
+ip=`"${amazon_dir}/aws" describe-instances --xml "$instance_id" | sed -e '/<ipAddress>/! d' -e 's/.*<ipAddress>//' -e 's/<.*//'`
 echo "ip: $ip" >&2
 echo $ip > ip
 
