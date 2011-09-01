@@ -21,6 +21,16 @@ else
     etc_dir="${amazon_dir}/../etc"
 fi
 
+AMAZON_ZONE=${AMAZON_ZONE:-eu-west-1b}
+region=`echo $AMAZON_ZONE | perl -ne '/([a-z-]*[0-9])/ && print $1'`
+
+if [ -z "$region" ]; then
+    echo "unable to parse zone $AMAZON_ZONE" >&2
+    exit 1
+fi
+
+echo "starting instance in zone ${AMAZON_ZONE}" >&2
+
 # make work dir
 wd="/var/run/amazon/$$"
 mkdir "$wd"
@@ -64,14 +74,6 @@ echo "building user-data..." >&2
 
 #cat userdata.txt >&2
 gzip userdata.txt
-
-AMAZON_ZONE=${AMAZON_ZONE:-eu-west-1b}
-region=`echo $AMAZON_ZONE | perl -ne '/([a-z-]*[0-9])/ && print $1'`
-
-if [ -z "$region" ]; then
-    echo "unable to parse zone $AMAZON_ZONE" >&2
-    exit 1
-fi
 
 
 # instance ids available at
