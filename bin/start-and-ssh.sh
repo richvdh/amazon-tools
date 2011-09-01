@@ -1,4 +1,6 @@
 #!/bin/sh
+#
+# start-and-ssh.sh [<availability-zone>] [<ssh args>]
 
 set -e
 
@@ -8,6 +10,11 @@ if [ -d "/etc/amazon" ]; then
 else
     etc_dir="${amazon_dir}/../etc"
 fi
+
+if [ -n "$1" ]; then
+    export AMAZON_ZONE="$1"
+fi
+shift
 
 out=`${amazon_dir}/start-instance.sh ${etc_dir}/userdata/ssh-server.yaml`
 
