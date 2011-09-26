@@ -29,7 +29,6 @@ echo "running backup to $backup_path"
 backup()
 {
     path="$1"; shift
-    conf="$1"; shift
     args="--terminal-verbosity 3 -v 8 --force \
           --exclude-globbing-filelist /etc/backup/exclusions.common"
 
@@ -47,10 +46,6 @@ backup()
     # userdata/backups-ssh-key.sh
     schema="/bin/bash -c 'ssh -C -oStrictHostKeyChecking=yes -oUserKnownHostsFile=\"$out/known_hosts\" \"%s\" rdiff-backup --server < <(cstream -v 1 -t 40000)'"
     echo "using schema: $schema"
-
-    if [ -r /etc/backup/exclusions.${conf} ]; then
-        args="$args --exclude-globbing-filelist /etc/backup/exclusions.${conf}"
-    fi
     
     dest="${backup_path}/${path}"
     rdiff-backup $args --remote-schema "$schema" "$@" "$path" "$dest"
