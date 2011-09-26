@@ -119,7 +119,14 @@ while state=$("${amazon_dir}/aws" describe-instances --simple "$instance_id" | \
 done
 echo "" >&2
 
-ip=`"${amazon_dir}/aws" describe-instances --xml "$instance_id" | sed -e '/<ipAddress>/! d' -e 's/.*<ipAddress>//' -e 's/<.*//'`
+"${amazon_dir}/aws" describe-instances --xml "$instance_id" > "run-output"
+ip=`cat "run-output" | sed -e '/<ipAddress>/! d' -e 's/.*<ipAddress>//' -e 's/<.*//'`
+if [ -z "$ip" ]; then
+    echo "unable to read ip from output:" >&2
+    cat "run-output" >&2
+    exit 1
+fi
+
 echo "ip: $ip" >&2
 echo $ip > ip
 
