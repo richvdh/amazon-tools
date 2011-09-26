@@ -16,7 +16,7 @@ if [ -n "$1" ]; then
 fi
 shift
 
-out=`${amazon_dir}/start-instance.sh ${etc_dir}/userdata/ssh-server.yaml`
+out=`${amazon_dir}/start-instance.sh -u ${etc_dir}/userdata/ssh-server.yaml`
 
 echo "$out"
 
