@@ -1,15 +1,17 @@
 #!/bin/bash
 #
-# start up an amazon instance. takes a list of cloud-init files on the
-# command line.  writes out the name of a working directory, which
+# start up an amazon instance. 
+# writes out the name of a working directory, which
 # contains the following (among other stuff):
 #   ip  - ip address of instance
 #   instance_id - id of instance
 #   id_rsa - ssh key which has perms for ubuntu@$ip
 #
-# TODO: use snapshots rather than an EBS volume, to enable free use of
-#       availability zones (and to enable attaching at image start time)
 # TODO: figure out how to get most recent ubuntu AMI
+# TODO: rewrite in python, or something. maybe with boto.
+
+# usage:
+#  start-instance.sh [-u <userdata file>] [run-instance args...]
 
 set -e
 
@@ -21,15 +23,27 @@ else
     etc_dir="${amazon_dir}/../etc"
 fi
 
-AMAZON_ZONE=${AMAZON_ZONE:-eu-west-1b}
-region=`echo $AMAZON_ZONE | perl -ne '/([a-z-]*[0-9])/ && print $1'`
+temp=`getopt -n "$0" -o "u:" -- "$@"`
+eval set -- "$temp"
+userdata=()
+while true; do
+    case "$1" in
+        "-u") userdata+=("$2"); shift 2 ;;
+        --) shift; break;;
+    esac
+done
 
-if [ -z "$region" ]; then
-    echo "unable to parse zone $AMAZON_ZONE" >&2
-    exit 1
+if [ -n "${AMAZON_ZONE}" ]; then
+    region=`echo $AMAZON_ZONE | perl -ne '/([a-z-]*[0-9])/ && print $1'`
+
+    if [ -z "$region" ]; then
+        echo "unable to parse zone $AMAZON_ZONE" >&2
+        exit 1
+    fi
+
+    echo "starting instance in zone ${AMAZON_ZONE}" >&2
+    set -- -availability-zone "$AMAZON_ZONE" "$@"
 fi
-
-echo "starting instance in zone ${AMAZON_ZONE}" >&2
 
 # make work dir
 wd=`mktemp -t -d amazon.XXXXXXXX`
@@ -68,8 +82,9 @@ echo "building user-data..." >&2
     echo -n " - "
     cat id_rsa.pub
 ) > ssh-keys.yaml
+
 "$amazon_dir/write-mime-multipart" --output=userdata.txt \
-    "$@" "ssh-keys.yaml" "${etc_dir}/userdata/touch-boot-complete.conf"
+    "${userdata[@]}" "ssh-keys.yaml" "${etc_dir}/userdata/touch-boot-complete.conf"
 
 #cat userdata.txt >&2
 gzip userdata.txt
@@ -90,7 +105,7 @@ echo "starting instance..." >&2
  -instance-type t1.micro \
  -instance-initiated-shutdown-behavior terminate \
  -user-data-file userdata.txt.gz \
- -availability-zone $AMAZON_ZONE \
+ "$@" \
  ami-5c417128 \
  > "run-output" || { cat "run-output" >&2; exit 1; }
 
