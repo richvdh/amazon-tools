@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+#
 
 set -e
 
@@ -6,9 +7,7 @@ amazon_dir=$(dirname "$(readlink -f "$0")")
 
 . /etc/backup/config
 
-export AMAZON_ZONE
-
-snapid_file="~root/backup/snapid"
+snapid_file=~/backup/snapid
 snapid=`cat "$snapid_file"`
 
 if [ -z "$snapid" ]; then
@@ -72,6 +71,7 @@ vol_id=`perl -ne 'BEGIN {$v=shift}
    /<blockDeviceMapping>/ and $b=1; next unless $b;
    /<deviceName>(.*)<\/deviceName>/ and $d=($1 eq $v); next unless $d;
    if(/<volumeId>(.*)<\/volumeId>/) {print "$1\n"; exit 0}' ${BACKUP_DEVICE} < din.tmp`
+rm din.tmp
 
 echo "creating S3 snapshot of backup volume"
 desc="`hostname -s` backup `date +'%Y%m%d'`"
@@ -81,12 +81,14 @@ newsnapid=`cat csnap.out | sed -e '/<snapshotId>/! d' -e 's/.*<snapshotId>//' -e
 if [ -z "$newsnapid" ]; then
     echo "unable to retrieve snapshot id:" >&2
     cat csnap.out >&2
+    rm csnap.out
     exit 1
 fi
+rm csnap.out
 
 echo "snapshot id: $newsnapid"
 mv "$snapid_file" "${snapid_file}.0"
 echo $newsnapid > "$snapid_file"
 
 echo "deleting old snapshot $snapid"
-su amazon -c "${amazon_dir}/aws" delete-snapshot "$snapid"
+su amazon -c "${amazon_dir}/aws delete-snapshot '$snapid'"
