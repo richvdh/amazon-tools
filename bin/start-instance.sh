@@ -32,8 +32,7 @@ fi
 echo "starting instance in zone ${AMAZON_ZONE}" >&2
 
 # make work dir
-wd="/var/run/amazon/$$"
-mkdir "$wd"
+wd=`mktemp -t -d amazon.XXXXXXXX`
 cd "$wd"
 
 # set a trap so that if we have any errors, we shut down the instance again.
