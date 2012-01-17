@@ -5,29 +5,24 @@ set -e
 
 amazon_dir=$(dirname "$(readlink -f "$0")")
 
+. "${amazon_dir}/functions.sh"
 . /etc/backup/config
 
-snapid_file=~/backup/snapid
-snapid=`cat "$snapid_file"`
+snapid=`read_snapid`
 
-if [ -z "$snapid" ]; then
-    echo "unable to read snapshot id from $snapid_file" >&2
-    exit 1
-fi
+out=`start_backup_instance`
+trap 'su amazon -c "'${amazon_dir}'/terminate-instance.sh '$out'"' EXIT
 
-# faith's backup device is a disk; buffy's is a partition...
-BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdc}
-
-out=`su amazon -c "${amazon_dir}/start-instance.sh -u /etc/amazon/userdata/backup-server.yaml -u /etc/amazon/userdata/backups-ssh-key.sh -- -b ${BACKUP_DEVICE}=$snapid"`
 cd "$out"
-
 instance_id=`cat instance_id`
 ip=`cat ip`
 
-trap 'su amazon -c "'${amazon_dir}'/terminate-instance.sh '$out'"' EXIT
+# faith's backup device is a disk; buffy's is a partition...
+BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdc}
+su amazon -c "${amazon_dir}/start-instance.sh -u /etc/amazon/userdata/backup-server.yaml -u /etc/amazon/userdata/backups-ssh-key.sh -- -b ${BACKUP_DEVICE}=$snapid"
 
 echo "mounting backup drive"
-ssh -o StrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -iid_rsa ubuntu@$ip sudo mount /dev/sdc1 /mnt
+ssh -o StrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -iid_rsa ubunt@$ip sudo mount /dev/sdc1 /mnt
 
 backup_path="backup@$ip::/mnt"
 echo "running backup to $backup_path"
