@@ -16,6 +16,7 @@ function read_snapid
         echo "unable to read snapshot id from $snapid_file" >&2
         exit 1
     fi
+    echo $snapid
 }
 
 # start the backup instance. Writes out the name of the state dir
