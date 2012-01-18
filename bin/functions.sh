@@ -5,11 +5,11 @@ else
     etc_dir="${amazon_dir}/../etc"
 fi
 
+snapid_file=/root/backup/snapid
 
 # read the snapshot id from /root/backup/snapid
 function read_snapid
 {
-    snapid_file=/root/backup/snapid
     snapid=`cat "$snapid_file"`
 
     if [ -z "$snapid" ]; then
