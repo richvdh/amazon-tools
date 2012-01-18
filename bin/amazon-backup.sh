@@ -12,15 +12,15 @@ snapid=`read_snapid`
 
 # faith's backup device is a disk; buffy's is a partition...
 BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdc}
-out=`su amazon -c "${amazon_dir}/start-instance.sh -u /etc/amazon/userdata/backup-server.yaml -u /etc/amazon/userdata/backups-ssh-key.sh -- -b ${BACKUP_DEVICE}=$snapid"`
-trap 'su amazon -c "'${amazon_dir}'/terminate-instance.sh '$out'"' EXIT
+out=`sudo -u amazon "${amazon_dir}/start-instance.sh" -u "${etc_dir}/userdata/backup-server.yaml" -u "${etc_dir}/userdata/backups-ssh-key.sh" -- -b "${BACKUP_DEVICE}=$snapid"`
+trap 'sudo -u amazon "'${amazon_dir}'/terminate-instance.sh" "'$out'"' EXIT
 
 cd "$out"
 instance_id=`cat instance_id`
 ip=`cat ip`
 
 echo "mounting backup drive"
-ssh -o StrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -iid_rsa ubunt@$ip sudo mount /dev/sdc1 /mnt
+ssh -o StrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -iid_rsa "ubuntu@$ip" sudo mount /dev/sdc1 /mnt
 
 backup_path="backup@$ip::/mnt"
 echo "running backup to $backup_path"
