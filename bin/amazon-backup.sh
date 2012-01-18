@@ -10,16 +10,14 @@ amazon_dir=$(dirname "$(readlink -f "$0")")
 
 snapid=`read_snapid`
 
-out=`start_backup_instance`
+# faith's backup device is a disk; buffy's is a partition...
+BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdc}
+out=`su amazon -c "${amazon_dir}/start-instance.sh -u /etc/amazon/userdata/backup-server.yaml -u /etc/amazon/userdata/backups-ssh-key.sh -- -b ${BACKUP_DEVICE}=$snapid"`
 trap 'su amazon -c "'${amazon_dir}'/terminate-instance.sh '$out'"' EXIT
 
 cd "$out"
 instance_id=`cat instance_id`
 ip=`cat ip`
-
-# faith's backup device is a disk; buffy's is a partition...
-BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdc}
-su amazon -c "${amazon_dir}/start-instance.sh -u /etc/amazon/userdata/backup-server.yaml -u /etc/amazon/userdata/backups-ssh-key.sh -- -b ${BACKUP_DEVICE}=$snapid"
 
 echo "mounting backup drive"
 ssh -o StrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -iid_rsa ubunt@$ip sudo mount /dev/sdc1 /mnt
