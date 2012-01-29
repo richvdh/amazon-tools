@@ -13,8 +13,8 @@ fi
 
 if [ -n "$1" ]; then
     export AMAZON_ZONE="$1"
+    shift
 fi
-shift
 
 out=`${amazon_dir}/start-instance.sh -u ${etc_dir}/userdata/ssh-server.yaml`
 
