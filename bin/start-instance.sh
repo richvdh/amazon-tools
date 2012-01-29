@@ -98,6 +98,7 @@ gzip userdata.txt
 #  release-20101020   - ami-f6340182
 #  release-20110201.1 - ami-3d1f2b49
 #  release-20110719   - ami-5c417128
+#  release-20120110   - ami-81dde2f5
 
 echo "starting instance..." >&2
 "${amazon_dir}/aws" run-instances \
@@ -106,7 +107,7 @@ echo "starting instance..." >&2
  -instance-initiated-shutdown-behavior terminate \
  -user-data-file userdata.txt.gz \
  "$@" \
- ami-5c417128 \
+ ami-81dde2f5 \
  > "run-output" || { cat "run-output" >&2; exit 1; }
 
 instance_id=`cat "run-output" | cut -f1`
@@ -133,6 +134,11 @@ while state=$("${amazon_dir}/aws" describe-instances --simple "$instance_id" | \
     sleep 1
 done
 echo "" >&2
+
+if [ "$state" != 'running' ]; then
+    echo -e "unexpected instance state $state" >&2
+    exit 1
+fi
 
 "${amazon_dir}/aws" describe-instances --xml "$instance_id" > "run-output"
 ip=`cat "run-output" | sed -e '/<ipAddress>/! d' -e 's/.*<ipAddress>//' -e 's/<.*//'`
