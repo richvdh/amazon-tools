@@ -53,9 +53,25 @@ cd "$wd"
 trap 'terminate_instance' EXIT
 
 terminate_instance() {
-    echo "terminating instance...">&2
     if [ -f "$wd/instance_id" ]; then
-	"${amazon_dir}/aws" terminate-instances `cat "$wd/instance_id"`
+        instance_id=`cat "$wd/instance_id"`
+        echo "terminating instance...">&2
+	"${amazon_dir}/aws" terminate-instances "$instance_id"
+
+        
+        echo "waiting for console output to become available..."
+        sleeptime=60
+        if [ -t 0 ]; then
+            # use read if we're in a terminal, to allow skipping it
+            echo "(enter to skip)"
+            read -t $sleeptime
+        else
+            sleep $sleeptime
+        fi
+
+        echo "Console output follows:" >&2
+        "${amazon_dir}/aws" get-console-output "$instance_id" >&2
+        echo "----END---" >&2
     fi
     cd /
     rm -r "$wd"
