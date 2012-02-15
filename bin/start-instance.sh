@@ -59,11 +59,11 @@ terminate_instance() {
 	"${amazon_dir}/aws" terminate-instances "$instance_id"
 
         
-        echo "waiting for console output to become available..."
-        sleeptime=60
+        echo "waiting for console output to become available..." >&2
+        sleeptime=120
         if [ -t 0 ]; then
             # use read if we're in a terminal, to allow skipping it
-            echo "(enter to skip)"
+            echo "(enter to skip)" >&2
             read -t $sleeptime
         else
             sleep $sleeptime
