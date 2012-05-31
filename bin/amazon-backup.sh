@@ -8,12 +8,17 @@ amazon_dir=$(dirname "$(readlink -f "$0")")
 . "${amazon_dir}/functions.sh"
 . /etc/backup/config
 
+LOCK_FILE="/var/run/amazon-backup.lock"
+
+lockfile-create -l --retry 0 "$LOCK_FILE" || { echo "backup apparently already running"; exit 1; }
+trap 'lockfile-remove -l "'$LOCK_FILE'"' EXIT
+
 snapid=`read_snapid`
 
 # faith's backup device is a disk; buffy's is a partition...
 BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdc}
 out=`sudo -u amazon "${amazon_dir}/start-instance.sh" -u "${etc_dir}/userdata/backup-server.yaml" -u "${etc_dir}/userdata/backups-ssh-key.sh" -- -b "${BACKUP_DEVICE}=$snapid"`
-trap 'sudo -u amazon "'${amazon_dir}'/terminate-instance.sh" "'$out'"' EXIT
+trap 'sudo -u amazon "'${amazon_dir}'/terminate-instance.sh" "'$out'"; lockfile-remove -l "'$LOCK_FILE'"' EXIT
 
 cd "$out"
 instance_id=`cat instance_id`
@@ -43,7 +48,7 @@ backup()
     # if this fails with a public key error, check that root@ has been
     # given permission to ssh to backup@; in particular, check out 
     # userdata/backups-ssh-key.sh
-    schema="/bin/bash -c 'ssh -C -oStrictHostKeyChecking=yes -oUserKnownHostsFile=\"$out/known_hosts\" \"%s\" rdiff-backup --server < <(cstream -v 1 -t 40000)'"
+    schema="/bin/bash -c 'ssh -C -oStrictHostKeyChecking=yes -oUserKnownHostsFile=\"$out/known_hosts\" \"%s\" rdiff-backup --server < <(cstream -v 1 -t 120000)'"
     echo "using schema: $schema"
     
     dest="${backup_path}/${path}"
