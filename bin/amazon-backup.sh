@@ -16,8 +16,7 @@ LOCKTOUCHPID="$!"
 
 snapid=`read_snapid`
 
-# faith's backup device is a disk; buffy's is a partition...
-BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdc}
+BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdc1}
 out=`sudo -u amazon "${amazon_dir}/start-instance.sh" -u "${etc_dir}/userdata/backup-server.yaml" -u "${etc_dir}/userdata/backups-ssh-key.sh" -- -b "${BACKUP_DEVICE}=$snapid"`
 trap 'sudo -u amazon "'${amazon_dir}'/terminate-instance.sh" "'$out'"' EXIT
 
