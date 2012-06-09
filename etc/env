@@ -1,5 +1,0 @@
-export JAVA_HOME=/usr/lib/jvm/default-java
-export EC2_HOME=/usr/local/ec2-api-tools
-export EC2_PRIVATE_KEY=/etc/amazon/keys/pk-2AQMMJ7X7W4CRCTUELUVF2U7WIEVRVGN.pem
-export EC2_CERT=/etc/amazon/keys/cert-2AQMMJ7X7W4CRCTUELUVF2U7WIEVRVGN.pem
-export EC2_URL=https://ec2.eu-west-1.amazonaws.com
