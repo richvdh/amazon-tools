@@ -8,17 +8,18 @@ amazon_dir=$(dirname "$(readlink -f "$0")")
 . "${amazon_dir}/functions.sh"
 . /etc/backup/config
 
-LOCK_FILE="/var/run/amazon-backup.lock"
+LOCK_FILE="/var/run/amazon-backup"
 
-lockfile-create -l --retry 0 "$LOCK_FILE" || { echo "backup apparently already running"; exit 1; }
-trap 'lockfile-remove -l "'$LOCK_FILE'"' EXIT
+lockfile-create --retry 0 "$LOCK_FILE" || { echo "backup apparently already running"; exit 1; }
+lockfile-touch "$LOCK_FILE" &
+LOCKTOUCHPID="$!"
 
 snapid=`read_snapid`
 
 # faith's backup device is a disk; buffy's is a partition...
 BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdc}
 out=`sudo -u amazon "${amazon_dir}/start-instance.sh" -u "${etc_dir}/userdata/backup-server.yaml" -u "${etc_dir}/userdata/backups-ssh-key.sh" -- -b "${BACKUP_DEVICE}=$snapid"`
-trap 'sudo -u amazon "'${amazon_dir}'/terminate-instance.sh" "'$out'"; lockfile-remove -l "'$LOCK_FILE'"' EXIT
+trap 'sudo -u amazon "'${amazon_dir}'/terminate-instance.sh" "'$out'"' EXIT
 
 cd "$out"
 instance_id=`cat instance_id`
@@ -90,3 +91,6 @@ echo $newsnapid > "$snapid_file"
 
 echo "deleting old snapshot $snapid"
 su amazon -c "${amazon_dir}/aws delete-snapshot '$snapid'"
+
+kill $LOCKTOUCHPID
+lockfile-remove $LOCK_FILE
