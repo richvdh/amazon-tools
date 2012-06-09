@@ -25,7 +25,7 @@ instance_id=`cat instance_id`
 ip=`cat ip`
 
 echo "mounting backup drive"
-ssh -o StrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -iid_rsa "ubuntu@$ip" sudo mount /dev/xvdc1 /mnt
+"${amazon_dir}/amazon-ssh.sh" "$out" sudo mount $BACKUP_DEVICE_MOUNT_OPTIONS /dev/xvdc1 /mnt
 
 backup_path="backup@$ip::/mnt"
 echo "running backup to $backup_path"
