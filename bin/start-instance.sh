@@ -100,21 +100,16 @@ echo "building user-data..." >&2
 ) > ssh-keys.yaml
 
 "$amazon_dir/write-mime-multipart" --output=userdata.txt \
-    "${userdata[@]}" "ssh-keys.yaml" "${etc_dir}/userdata/touch-boot-complete.conf"
+    "${userdata[@]}" "ssh-keys.yaml"
 
 #cat userdata.txt >&2
 gzip userdata.txt
 
 
 # instance ids available at
-#   http://uec-images.ubuntu.com/releases/10.04
+#   http://uec-images.ubuntu.com/releases/precise
 #
 # 64-bit ebs eu-west-1
-#
-#  release-20101020   - ami-f6340182
-#  release-20110201.1 - ami-3d1f2b49
-#  release-20110719   - ami-5c417128
-#  release-20120110   - ami-81dde2f5
 
 echo "starting instance..." >&2
 "${amazon_dir}/aws" run-instances \
@@ -123,7 +118,7 @@ echo "starting instance..." >&2
  -instance-initiated-shutdown-behavior terminate \
  -user-data-file userdata.txt.gz \
  "$@" \
- ami-81dde2f5 \
+ ami-e1e8d395 \
  > "run-output" || { cat "run-output" >&2; exit 1; }
 
 instance_id=`cat "run-output" | cut -f1`
@@ -184,10 +179,12 @@ while ! ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_r
 done
 echo >&2
 
+trap - EXIT
+
 echo -n "waiting for boot to complete" >&2
 a=0
 while ! ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa ubuntu@$ip \
-       test -f /var/run/boot-complete; do
+       test -f /var/lib/cloud/instance/boot-finished; do
     if [ $a -gt 100 ]; then
 	echo -e "\nGave up after 100 secs" >&2
 	exit 1
