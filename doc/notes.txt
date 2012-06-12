@@ -1,12 +1,3 @@
-instance store: not persisted
-ebs: persisted
-
-terminate: can't be restarted.
-
-todo:
-switch to snapshots
-(encrypt with dm-crypt)
-
 Costs
 -----
 ec2: $0.095/hour (small) / $0.025/hour (micro)
@@ -27,14 +18,16 @@ Free tier (per month):
 100K requests + 100K Http hits + 1K emails SimpleNotificationService
 10 cloudwatch alarms
 
+
+Bootstrapping a backup instance
 ----
 AMAZON_ZONE=eu-west-1a bin/start-instance
-bin/aws create-volume -s 15 -z eu-west-1b # untested
+bin/aws create-volume -s 15 -z eu-west-1a
 
-bin/attach-volume vol-82f378eb i-6cfa9b1a /dev/sdc1
+bin/attach-volume <volume> <instance> /dev/sdc1
 
 # on server:
-sudo mkfs -T ext4 /dev/sdc1
-sudo mount /dev/sdc1 /mnt
+sudo mkfs -T ext4 /dev/xvdc1
+sudo mount /dev/xvdc1 /mnt
 sudo mkdir /mnt/{home,etc,usr/local,var} # or whatever
 sudo chown backup /mnt/{home,etc,usr/local,var}
