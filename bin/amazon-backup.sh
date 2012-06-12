@@ -14,11 +14,19 @@ lockfile-create --retry 0 "$LOCK_FILE" || { echo "backup apparently already runn
 lockfile-touch "$LOCK_FILE" &
 LOCKTOUCHPID="$!"
 
+function remove_lockfile
+{
+    kill $LOCKTOUCHPID
+    lockfile-remove "$LOCK_FILE"
+}
+
+trap 'remove_lockfile' EXIT
+
 snapid=`read_snapid`
 
 BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdc1}
 out=`sudo -u amazon "${amazon_dir}/start-instance.sh" -u "${etc_dir}/userdata/backup-server.yaml" -u "${etc_dir}/userdata/backups-ssh-key.sh" -- -b "${BACKUP_DEVICE}=$snapid"`
-trap 'sudo -u amazon "'${amazon_dir}'/terminate-instance.sh" "'$out'"' EXIT
+trap 'remove_lockfile; sudo -u amazon "'${amazon_dir}'/terminate-instance.sh" "'$out'"' EXIT
 
 cd "$out"
 instance_id=`cat instance_id`
@@ -90,6 +98,3 @@ echo $newsnapid > "$snapid_file"
 
 echo "deleting old snapshot $snapid"
 su amazon -c "${amazon_dir}/aws delete-snapshot '$snapid'"
-
-kill $LOCKTOUCHPID
-lockfile-remove $LOCK_FILE
