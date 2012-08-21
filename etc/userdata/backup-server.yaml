@@ -3,9 +3,7 @@
 # userdata config for backup-server: installs rdiff-backup and sets a shutdown job for 24 hours hence
 
 # run apt-get upgrade at first boot
-apt_upgrade: true
-
-packages:
+# apt_upgrade: true
 
 #apt_sources:
 # - source: deb http://eu-west-1.ec2.archive.ubuntu.com/ubuntu/ lucid multiverse
