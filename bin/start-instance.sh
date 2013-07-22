@@ -118,7 +118,7 @@ echo "starting instance..." >&2
  -instance-initiated-shutdown-behavior terminate \
  -user-data-file userdata.txt.gz \
  "$@" \
- ami-e1e8d395 \
+ ami-e901069d \
  > "run-output" || { cat "run-output" >&2; exit 1; }
 
 instance_id=`cat "run-output" | cut -f1`
@@ -134,8 +134,32 @@ echo $instance_id > instance_id
 
 echo -n "waiting for instance to start" >&2
 a=0
-while state=$("${amazon_dir}/aws" describe-instances --simple "$instance_id" | \
-    cut -f2) && [ "$state" = 'pending' ]; do
+while true; do
+    "${amazon_dir}/aws" describe-instances --xml "$instance_id" > "run-output"
+
+    # look for 'instance doesn't exist yet' error
+    if grep -q '<Error>' "run-output"; then
+        if ! grep -q '<Code>InvalidInstanceID.NotFound</Code>' "run-output"; then
+	    echo "Error starting instance: ... " >&2
+            cat "run-output" >&2
+	    exit 1
+        fi
+    else
+        state=`perl -ne '$a=1 if(/<instanceState>/); if($a && /<name>(.*)<\/name>/) { print $1; exit }' run-output`
+        case "$state" in
+            running)
+	        # done
+	        break
+		;;
+	    pending)
+	        # loop
+	        ;;
+	    *)
+                echo -e "unexpected instance state $state" >&2
+                exit 1
+        esac
+    fi
+
     if [ $a -gt 200 ]; then
 	echo -e "\nGave up after 200 secs" >&2
 	exit 1
@@ -144,14 +168,8 @@ while state=$("${amazon_dir}/aws" describe-instances --simple "$instance_id" | \
     echo -n "." >&2
     sleep 1
 done
-echo "" >&2
 
-if [ "$state" != 'running' ]; then
-    echo -e "unexpected instance state $state" >&2
-    exit 1
-fi
-
-"${amazon_dir}/aws" describe-instances --xml "$instance_id" > "run-output"
+	
 ip=`cat "run-output" | sed -e '/<ipAddress>/! d' -e 's/.*<ipAddress>//' -e 's/<.*//'`
 if [ -z "$ip" ]; then
     echo "unable to read ip from output:" >&2
