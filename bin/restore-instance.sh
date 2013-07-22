@@ -18,8 +18,7 @@ else
 fi
 
 
-# faith's backup device is a disk; buffy's is a partition...
-BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdc}
+BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdc1}
 out=`"${amazon_dir}/start-instance.sh" -u "${etc_dir}/userdata/ssh-server.yaml" -- -b "${BACKUP_DEVICE}=$snapid"`
 
 cd "$out"
