@@ -23,7 +23,7 @@ snapid="$1"
 newsize="$2"
 newdesc="$3"
 
-DEVICE="/dev/sdc1"
+DEVICE="/dev/xvdc1"
 
 # fire up an ec2 instance which we'll use to run the resize2fs command, with the snapshot attached
 out=`"${amazon_dir}/start-instance.sh" -- -b "$DEVICE=$snapid:$newsize"`
