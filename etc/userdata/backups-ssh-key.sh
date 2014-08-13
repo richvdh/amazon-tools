@@ -13,3 +13,4 @@ EOF
 
 chown -R backup ~backup/.ssh
 chmod 600 ~backup/.ssh/authorized_keys
+chsh -s /bin/bash backup
