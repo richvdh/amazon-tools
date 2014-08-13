@@ -15,6 +15,15 @@
 
 set -e
 
+# instance ids available at
+#   http://uec-images.ubuntu.com/releases/precise
+#   http://uec-images.ubuntu.com/releases/14.04/release/
+#
+# 64-bit hvm eu-west-1
+AMI_ID=ami-fd6cbd8a
+EC2_INSTANCE_TYPE=t2.micro
+SUBNET_ID=subnet-f423fc91
+
 # find the tools
 amazon_dir=$(dirname "$(readlink -f "$0")")
 if [ -d "/etc/amazon" ]; then
@@ -106,19 +115,17 @@ echo "building user-data..." >&2
 gzip userdata.txt
 
 
-# instance ids available at
-#   http://uec-images.ubuntu.com/releases/precise
-#
-# 64-bit ebs eu-west-1
-
 echo "starting instance..." >&2
 "${amazon_dir}/aws" run-instances \
  --simple \
- -instance-type t1.micro \
+ -instance-type "$EC2_INSTANCE_TYPE" \
  -instance-initiated-shutdown-behavior terminate \
  -user-data-file userdata.txt.gz \
+ -net-device-index 0 \
+ -net-associate-public-ip-address True \
+ -net-subnet "$SUBNET_ID" \
  "$@" \
- ami-e901069d \
+ "$AMI_ID" \
  > "run-output" || { cat "run-output" >&2; exit 1; }
 
 instance_id=`cat "run-output" | cut -f1`
