@@ -51,8 +51,10 @@ if [ -n "${AMAZON_ZONE}" ]; then
     fi
 
     echo "starting instance in zone ${AMAZON_ZONE}" >&2
-    set -- -availability-zone "$AMAZON_ZONE" "$@"
+    set -- --region "${region}" --availability-zone "$AMAZON_ZONE" "$@"
 fi
+
+# if AMAZON_ZONE is unset, we assume somebody has set a sensible --region in ~/.awsrc
 
 # make work dir
 wd=`mktemp -t -d amazon.XXXXXXXX`
