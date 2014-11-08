@@ -68,11 +68,11 @@ backup()
 
 run_backups
 
-# need to shut down the instance before we can take a snapshot
-su amazon -c "'${amazon_dir}'/terminate-instance.sh -s -w '$out'"
+# need to stop the instance before we can take a snapshot
+sudo -u amazon "${amazon_dir}/terminate-instance.sh" -s -w "$out"
 
 # get the volume id
-su amazon -c "'${amazon_dir}'/aws --xml din '$instance_id'" > din.tmp
+sudo -u amazon "${amazon_dir}/aws" --xml din "$instance_id" > din.tmp
 vol_id=`perl -ne 'BEGIN {$v=shift}
    /<blockDeviceMapping>/ and $b=1; next unless $b;
    /<deviceName>(.*)<\/deviceName>/ and $d=($1 eq $v); next unless $d;
@@ -81,7 +81,7 @@ rm din.tmp
 
 echo "creating S3 snapshot of backup volume"
 desc="`hostname -s` backup `date +'%Y%m%d'`"
-su amazon -c "${amazon_dir}/aws --xml csnap '$vol_id' --description '$desc'" > csnap.out
+sudo -u amazon "${amazon_dir}/aws" --xml csnap "$vol_id" --description "$desc" > csnap.out
 newsnapid=`cat csnap.out | sed -e '/<snapshotId>/! d' -e 's/.*<snapshotId>//' -e 's/<.*//'`
 
 if [ -z "$newsnapid" ]; then
@@ -97,4 +97,4 @@ mv "$snapid_file" "${snapid_file}.0"
 echo $newsnapid > "$snapid_file"
 
 echo "deleting old snapshot $snapid"
-su amazon -c "${amazon_dir}/aws delete-snapshot '$snapid'"
+sudo -u amazon "${amazon_dir}/aws" delete-snapshot "$snapid"
