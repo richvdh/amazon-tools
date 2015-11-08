@@ -206,8 +206,6 @@ while ! ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_r
 done
 echo >&2
 
-trap - EXIT
-
 echo -n "waiting for boot to complete" >&2
 a=0
 while ! ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa ubuntu@$ip \
