@@ -56,12 +56,14 @@ backup()
     # if this fails with a public key error, check that root@ has been
     # given permission to ssh to backup@; in particular, check out 
     # userdata/backups-ssh-key.sh
-    schema="/bin/bash -c 'ssh -C -oStrictHostKeyChecking=yes -oUserKnownHostsFile=\"$out/known_hosts\" \"%s\" rdiff-backup --server < <(cstream -v 1 -t 120000)'"
+    schema="ssh -C -oStrictHostKeyChecking=yes -oUserKnownHostsFile=\"$out/known_hosts\" \"%s\" rdiff-backup --server"
+    schema="$schema < <(cstream -v 1 -T 10 -t 300000)"
+    schema="/bin/bash -c '$schema'"
     echo "using schema: $schema"
-    
+
     dest="${backup_path}/${path}"
     rdiff-backup $args --remote-schema "$schema" "$@" "$path" "$dest"
-    
+
     # remove old backups
     rdiff-backup --remote-schema "$schema" --force --remove-older-than 1M12h "$dest"
 }
