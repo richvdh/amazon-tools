@@ -42,7 +42,8 @@ backup()
 {
     path="$1"; shift
     args="--terminal-verbosity 3 -v 8 --force \
-          --exclude-globbing-filelist /etc/backup/exclusions.common"
+          --exclude-globbing-filelist /etc/backup/exclusions.common \
+          --create-full-path"
 
     # the use of process substitution rather than a simple pipe here
     # is to ensure that we don't get stuck if the ssh fails to start
