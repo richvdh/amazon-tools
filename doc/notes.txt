@@ -1,20 +1,15 @@
-Costs
------
-ec2: $0.095/hour (small) / $0.025/hour (micro)
-ebs: $.11/GB/mo; $.11/million I/O
-ebs -> s3: $.15/GB/mo; .01/1000 PUTs; .01/10000 GETs (around 4MB/block)
-s3: .14/GB/mo
-
-data transfer: $.10/GB in, $.15/GB out
-
 Bootstrapping a backup instance
 ----
 use ./bin/bootstrap-backup-snapshot to create snapshot
 
 # on host:
-adduser --system --disabled-password amazon
+apt-get install lockfile-progs rdiff-backup cstream
 
-apt-get install lockfile-progs
+adduser --system --disabled-password amazon
+echo "--region=eu-west-1" > ~amazon/.awsrc
+
+# create IAM user and access key
+# creds go in ~amazon/.awssecret, which should be chmod 600
 
 cd /usr/local
 
@@ -25,9 +20,5 @@ git submodule update
 mkdir ~/backup
 echo <snapid> > ~/backup/snapid
 
-echo "--region=eu-west-1" > ~amazon/.awsrc
-
-# create IAM user and access key
-# creds go in ~amazon/.awssecret, which should be chmod 600
-
+# config in /etc/backup
 # wrapper script in /etc/cron.daily
