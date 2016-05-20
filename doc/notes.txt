@@ -7,27 +7,27 @@ s3: .14/GB/mo
 
 data transfer: $.10/GB in, $.15/GB out
 
-Free tier (per month):
-750 hours micro ec2
-750 hours ELB + 15GB data
-10GB ebs + 1M I/O + 1GB snapshot + 10K snapshot GETs + 1K snapshot PUTs
-5GB S3 + 20K GETs + 1K PUTs
-15GB transit in + 15GB transit out
-25 hours SimpleDB + 1GB storage
-100K requests SimpleQueueService
-100K requests + 100K Http hits + 1K emails SimpleNotificationService
-10 cloudwatch alarms
-
-
 Bootstrapping a backup instance
 ----
-AMAZON_ZONE=eu-west-1a bin/start-instance
-bin/aws create-volume -s 15 -z eu-west-1a
+use ./bin/bootstrap-backup-snapshot to create snapshot
 
-bin/attach-volume <volume> <instance> /dev/sdc1
+# on host:
+adduser --system --disabled-password amazon
 
-# on server:
-sudo mkfs -T ext4 /dev/xvdc1
-sudo mount /dev/xvdc1 /mnt
-sudo mkdir /mnt/{home,etc,usr/local,var} # or whatever
-sudo chown backup /mnt/{home,etc,usr/local,var}
+apt-get install lockfile-progs
+
+cd /usr/local
+
+git clone git@github.com:richvdh/amazon-tools.git
+git submodule init
+git submodule update
+
+mkdir ~/backup
+echo <snapid> > ~/backup/snapid
+
+echo "--region=eu-west-1" > ~amazon/.awsrc
+
+# create IAM user and access key
+# creds go in ~amazon/.awssecret, which should be chmod 600
+
+# wrapper script in /etc/cron.daily
