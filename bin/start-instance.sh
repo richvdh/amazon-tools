@@ -16,11 +16,10 @@
 set -e
 
 # instance ids available at
-#   http://uec-images.ubuntu.com/releases/precise
 #   http://uec-images.ubuntu.com/releases/14.04/release/
 #
 # 64-bit hvm eu-west-1
-AMI_ID=ami-fd6cbd8a
+AMI_ID=ami-cd0fd6be
 EC2_INSTANCE_TYPE=t2.micro
 SUBNET_ID=subnet-f423fc91
 
@@ -66,10 +65,17 @@ trap 'terminate_instance' EXIT
 terminate_instance() {
     if [ -f "$wd/instance_id" ]; then
         instance_id=`cat "$wd/instance_id"`
-        echo "terminating instance...">&2
-	"${amazon_dir}/aws" terminate-instances "$instance_id"
+        if [ -f "$wd/ip" ]; then
+            ip=`cat "$wd/ip"`
+            echo "cloud-init log follows:">&2
+        fi
+        ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa ubuntu@$ip \
+           cat /var/log/cloud-init.log >&2 || true
+        echo "----END---" >&2
 
-        
+        echo "terminating instance...">&2
+        "${amazon_dir}/aws" terminate-instances "$instance_id"
+
         echo "waiting for console output to become available..." >&2
         sleeptime=120
         if [ -t 0 ]; then
