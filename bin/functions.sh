@@ -30,5 +30,5 @@ function start_backup_instance
 function mount_backup_device
 {
     echo "mounting backup drive"
-    ssh -o StrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -iid_rsa ubuntu@$ip sudo mount /dev/sdc1 /mnt
+    ssh -S ssh_control ubuntu@$ip sudo mount /dev/sdc1 /mnt
 }

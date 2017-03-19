@@ -36,6 +36,15 @@ remote_backup_dir="/mnt"
 echo "mounting backup drive"
 "${amazon_dir}/amazon-ssh.sh" "$out" sudo mount $BACKUP_DEVICE_MOUNT_OPTIONS /dev/xvdf "${remote_backup_dir}"
 
+# if this fails with a public key error, check that root@ has been
+# given permission to ssh to backup@; in particular, check out
+# userdata/backups-ssh-key.sh
+echo "starting SSH master for backup@$ip"
+control_sock="${out}/ssh_control.backup"
+ssh -C -M -S "${control_sock}" -oControlPersist=yes \
+    -oStrictHostKeyChecking=yes -oUserKnownHostsFile="$out/known_hosts" \
+    "backup@$ip" -O forward
+
 backup()
 {
     path="$1"; shift
@@ -52,10 +61,7 @@ backup()
     # rdiff-backup uses subprocess.py, which hardcodes /bin/sh, which 
     # doesn't support process substitutions. sigh.
     #
-    # if this fails with a public key error, check that root@ has been
-    # given permission to ssh to backup@; in particular, check out 
-    # userdata/backups-ssh-key.sh
-    schema="ssh -C -oStrictHostKeyChecking=yes -oUserKnownHostsFile=\"$out/known_hosts\" \"%s\" rdiff-backup --server"
+    schema="ssh -S \"${control_sock}\" \"%s\" rdiff-backup --server"
     schema="$schema < <(cstream -v 1 -T 10 -t 300000)"
     schema="/bin/bash -c '$schema'"
     echo "using schema: $schema"
@@ -71,6 +77,9 @@ backup()
 }
 
 run_backups
+
+# shut down the control master to avoid a perms error on the socket
+ssh -S "${control_sock}" -O exit
 
 # need to stop the instance before we can take a snapshot
 sudo -u amazon "${amazon_dir}/terminate-instance.sh" -s -w "$out"

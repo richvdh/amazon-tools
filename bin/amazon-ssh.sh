@@ -2,6 +2,8 @@
 #
 # amazon-ssh.sh [-s <ssh opts>] <state-dir> [<command>]
 #
+# depecated; honestly, you might as well just do it inline.
+
 set -e
 
 temp=`getopt -n "$0" -o "+s:" -- "$@"`
@@ -23,8 +25,4 @@ cd "$1"
 shift
 
 ip=`cat ip`
-exec ssh -oStrictHostKeyChecking=yes \
-         -oUserKnownHostsFile=known_hosts \
-         -iid_rsa \
-         "${sshopts[@]}" \
-         ubuntu@$ip "$@"
+exec ssh -S "ssh_control" "${sshopts[@]}" ubuntu@$ip "$@"
