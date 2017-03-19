@@ -22,6 +22,10 @@ set -e
 AMI_ID=ami-cd0fd6be
 EC2_INSTANCE_TYPE=t2.micro
 SUBNET_ID=subnet-f423fc91
+if [ -z "$AMAZON_ZONE" ]; then
+    # has to match the subnet ID
+    AMAZON_ZONE="eu-west-1b"
+fi
 
 # find the tools
 amazon_dir=$(dirname "$(readlink -f "$0")")
@@ -41,19 +45,15 @@ while true; do
     esac
 done
 
-if [ -n "${AMAZON_ZONE}" ]; then
-    region=`echo $AMAZON_ZONE | perl -ne '/([a-z-]*[0-9])/ && print $1'`
+region=`echo $AMAZON_ZONE | perl -ne '/([a-z-]*[0-9])/ && print $1'`
 
-    if [ -z "$region" ]; then
-        echo "unable to parse zone $AMAZON_ZONE" >&2
-        exit 1
-    fi
-
-    echo "starting instance in zone ${AMAZON_ZONE}" >&2
-    set -- --region "${region}" --availability-zone "$AMAZON_ZONE" "$@"
+if [ -z "$region" ]; then
+    echo "unable to parse zone $AMAZON_ZONE" >&2
+    exit 1
 fi
 
-# if AMAZON_ZONE is unset, we assume somebody has set a sensible --region in ~/.awsrc
+echo "starting instance in zone ${AMAZON_ZONE}" >&2
+set -- --region "${region}" --availability-zone "$AMAZON_ZONE" "$@"
 
 # make work dir
 wd=`mktemp -t -d amazon.XXXXXXXX`
@@ -74,7 +74,7 @@ terminate_instance() {
         echo "----END---" >&2
 
         echo "terminating instance...">&2
-        "${amazon_dir}/aws" terminate-instances "$instance_id"
+        "${amazon_dir}/aws" --region "$region" terminate-instances "$instance_id"
 
         echo "waiting for console output to become available..." >&2
         sleeptime=120
@@ -87,12 +87,15 @@ terminate_instance() {
         fi
 
         echo "Console output follows:" >&2
-        "${amazon_dir}/aws" get-console-output "$instance_id" >&2
+        "${amazon_dir}/aws" --region "$region" get-console-output "$instance_id" >&2
         echo "----END---" >&2
     fi
     cd /
     rm -r "$wd"
 }
+
+# stash the aws region, for other scripts
+echo "${region}" > aws_region
 
 echo "building ssh keys..." >&2
 for i in rsa dsa; do
@@ -150,7 +153,7 @@ echo $instance_id > instance_id
 echo -n "waiting for instance to start" >&2
 a=0
 while true; do
-    "${amazon_dir}/aws" describe-instances --xml "$instance_id" > "run-output"
+    "${amazon_dir}/aws" describe-instances --region "$region" --xml "$instance_id" > "run-output"
 
     # look for 'instance doesn't exist yet' error
     if grep -q '<Error>' "run-output"; then
@@ -200,7 +203,10 @@ echo "building known hosts... " >&2
 
 echo -n "waiting for ssh to work" >&2
 a=0
-while ! ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa ubuntu@$ip echo ok &>/dev/null; do
+while ! ssh \
+        -M -S ssh_control -oControlPersist=yes \
+        -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts \
+        -i id_rsa ubuntu@$ip echo ok &>/dev/null; do
     if [ $a -gt 200 ]; then
 	echo -e "\nGave up after 200 secs; giving one last try" >&2
         ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa ubuntu@$ip echo ok 
@@ -214,7 +220,7 @@ echo >&2
 
 echo -n "waiting for boot to complete" >&2
 a=0
-while ! ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa ubuntu@$ip \
+while ! ssh -S ssh_control ubuntu@$ip \
        test -f /var/lib/cloud/instance/boot-finished; do
     if [ $a -gt 100 ]; then
 	echo -e "\nGave up after 100 secs" >&2

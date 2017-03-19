@@ -31,8 +31,9 @@ fi
 
 wd="$1"
 instance_id=`cat "$wd/instance_id"`
+region=`cat "$wd/aws_region"`
 
-out=`"${amazon_dir}/aws" --xml "$cmd" "$instance_id"`
+out=`"${amazon_dir}/aws" --region "$region" --xml "$cmd" "$instance_id"`
 if echo $out | grep -i '<error>' > /dev/null; then
     echo "error terminating instance:" >&2
     echo $out >&2
@@ -42,7 +43,7 @@ fi
 if [ -n "$wait" ]; then
     echo -n "waiting for instance to stop" >&2
     a=0
-    while state=$("${amazon_dir}/aws" describe-instances --simple "$instance_id" | \
+    while state=$("${amazon_dir}/aws" --region "$region" describe-instances --simple "$instance_id" | \
         cut -f2) && [ "$state" = 'shutting-down' -o "$state" = 'stopping' ]; do
         if [ $a -gt 200 ]; then
             echo -e "\nGave up after 200 secs" >&2

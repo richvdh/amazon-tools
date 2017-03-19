@@ -31,6 +31,7 @@ out=`"${amazon_dir}/start-instance.sh" -- -b "$DEVICE=$snapid:$newsize"`
 cd "$out"
 instance_id=`cat instance_id`
 ip=`cat ip`
+region=`cat aws_region`
 trap 'echo "warning: ec2 instance $instance_id still extant" &>2' EXIT
 
 # resize2fs requires us to run a fsck before it will do its stuff
@@ -47,7 +48,7 @@ echo "running resize2fs..." >&2
 "${amazon_dir}/terminate-instance.sh" -s -w "$out"
 
 # get the volume id
-"${amazon_dir}/aws" --xml din "$instance_id" > din.tmp
+"${amazon_dir}/aws" --region "$region" --xml din "$instance_id" > din.tmp
 vol_id=`perl -ne 'BEGIN {$v=shift}
    /<blockDeviceMapping>/ and $b=1; next unless $b;
    /<deviceName>(.*)<\/deviceName>/ and $d=($1 eq $v); next unless $d;
@@ -56,7 +57,7 @@ rm din.tmp
 
 echo "creating S3 snapshot of resized volume" >&2
 newdesc="${newdesc:-enlarged $snapid}"
-"${amazon_dir}/aws" --xml csnap "$vol_id" --description "$newdesc" > csnap.out
+"${amazon_dir}/aws" --region "$region" --xml csnap "$vol_id" --description "$newdesc" > csnap.out
 newsnapid=`cat csnap.out | sed -e '/<snapshotId>/! d' -e 's/.*<snapshotId>//' -e 's/<.*//'`
 
 if [ -z "$newsnapid" ]; then
