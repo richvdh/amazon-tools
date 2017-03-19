@@ -32,11 +32,9 @@ cd "$out"
 instance_id=`cat instance_id`
 ip=`cat ip`
 
+remote_backup_dir="/mnt"
 echo "mounting backup drive"
-"${amazon_dir}/amazon-ssh.sh" "$out" sudo mount $BACKUP_DEVICE_MOUNT_OPTIONS /dev/xvdf /mnt
-
-backup_path="backup@$ip::/mnt"
-echo "running backup to $backup_path"
+"${amazon_dir}/amazon-ssh.sh" "$out" sudo mount $BACKUP_DEVICE_MOUNT_OPTIONS /dev/xvdf "${remote_backup_dir}"
 
 backup()
 {
@@ -62,11 +60,14 @@ backup()
     schema="/bin/bash -c '$schema'"
     echo "using schema: $schema"
 
-    dest="${backup_path}/${path}"
+    dest="backup@$ip::${remote_backup_dir}/${path}"
     rdiff-backup $args --remote-schema "$schema" "$@" "$path" "$dest"
 
     # remove old backups
     rdiff-backup --remote-schema "$schema" --force --remove-older-than 1M12h "$dest"
+
+    # rotate the log
+    "${amazon_dir}/amazon-ssh.sh" "$out" sudo savelog "${remote_backup_dir}/${path}/rdiff-backup-data/backup.log"
 }
 
 run_backups
