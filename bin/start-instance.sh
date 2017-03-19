@@ -16,7 +16,7 @@
 set -e
 
 # instance ids available at
-#   http://uec-images.ubuntu.com/releases/14.04/release/
+#   https://cloud-images.ubuntu.com/locator/
 #
 # 64-bit hvm eu-west-1
 AMI_ID=ami-cd0fd6be
