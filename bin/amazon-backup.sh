@@ -79,7 +79,7 @@ backup()
 run_backups
 
 # shut down the control master to avoid a perms error on the socket
-ssh -S "${control_sock}" -O exit
+ssh -S "${control_sock}" "backup@$ip" -O exit
 
 # need to stop the instance before we can take a snapshot
 sudo -u amazon "${amazon_dir}/terminate-instance.sh" -s -w "$out"
