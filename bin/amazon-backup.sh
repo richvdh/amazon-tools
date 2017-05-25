@@ -25,7 +25,7 @@ trap 'remove_lockfile' EXIT
 snapid=`read_snapid`
 
 BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdf}
-out=`sudo -u amazon "${amazon_dir}/start-instance.sh" -u "${etc_dir}/userdata/backup-server.yaml" -u "${etc_dir}/userdata/backups-ssh-key.sh" -- -b "${BACKUP_DEVICE}=$snapid"`
+out=`sudo -u amazon "${amazon_dir}/start-instance.sh" -u "${etc_dir}/userdata/backup-server.yaml" -u "${etc_dir}/userdata/backups-ssh-key.sh" -- -b "${BACKUP_DEVICE}=${snapid}:::gp2"`
 trap 'remove_lockfile; sudo -u amazon "'${amazon_dir}'/terminate-instance.sh" "'$out'"' EXIT
 
 cd "$out"
