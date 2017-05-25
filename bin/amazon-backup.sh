@@ -48,6 +48,9 @@ ssh -C -M -S "${control_sock}" -oControlPersist=yes \
 backup()
 {
     path="$1"; shift
+
+    echo "backuing up: $path"
+
     args="--terminal-verbosity 3 -v 8 --force \
           --exclude-globbing-filelist /etc/backup/exclusions.common \
           --create-full-path"
@@ -62,15 +65,15 @@ backup()
     # doesn't support process substitutions. sigh.
     #
     schema="ssh -S \"${control_sock}\" \"%s\" rdiff-backup --server"
-    schema="$schema < <(cstream -v 1 -T 10 -t 300000)"
+    schema="$schema < <(cstream -v 1 -T 10 -t ${RATE_LIMIT:-300000})"
     schema="/bin/bash -c '$schema'"
-    echo "using schema: $schema"
+    # echo "using schema: $schema"
 
     dest="backup@$ip::${remote_backup_dir}/${path}"
     rdiff-backup $args --remote-schema "$schema" "$@" "$path" "$dest"
 
     # remove old backups
-    rdiff-backup --remote-schema "$schema" --force --remove-older-than 1M12h "$dest"
+    rdiff-backup --remote-schema "$schema" --force --remove-older-than "${MAX_INCREMENT_AGE:-1M12h}" "$dest"
 
     # rotate the log
     "${amazon_dir}/amazon-ssh.sh" "$out" sudo savelog "${remote_backup_dir}/${path}/rdiff-backup-data/backup.log"
