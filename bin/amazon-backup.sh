@@ -1,5 +1,13 @@
 #!/bin/bash
 #
+# This script uses two separate users on the remote server:
+#
+#   ubuntu@, which must have sudo permissions. We create an ssh keypair locally
+#     and grant access for it via the userdata.
+#
+#   backup@, which is used to run the rdiff-backup server. Access to this is
+#     configured by a *hardcoded* list of authorized_keys in
+#     ../etc/userdata/backups-ssh-key.sh
 
 set -e
 
@@ -34,14 +42,13 @@ ip=`cat ip`
 
 remote_backup_dir="/mnt"
 echo "mounting backup drive"
-"${amazon_dir}/amazon-ssh.sh" "$out" sudo mount $BACKUP_DEVICE_MOUNT_OPTIONS /dev/xvdf "${remote_backup_dir}"
+ssh -S "ssh_control" ubuntu@$ip sudo mount $BACKUP_DEVICE_MOUNT_OPTIONS /dev/xvdf "${remote_backup_dir}"
 
 # if this fails with a public key error, check that root@ has been
 # given permission to ssh to backup@; in particular, check out
 # userdata/backups-ssh-key.sh
 echo "starting SSH master for backup@$ip"
-control_sock="${out}/ssh_control.backup"
-ssh -C -M -S "${control_sock}" -oControlPersist=yes \
+ssh -C -M -S "ssh_control.backup" -oControlPersist=yes \
     -oStrictHostKeyChecking=yes -oUserKnownHostsFile="$out/known_hosts" \
     "backup@$ip" -O forward
 
@@ -64,7 +71,7 @@ backup()
     # rdiff-backup uses subprocess.py, which hardcodes /bin/sh, which 
     # doesn't support process substitutions. sigh.
     #
-    schema="ssh -S \"${control_sock}\" \"%s\" rdiff-backup --server"
+    schema="ssh -S ssh_control.backup \"%s\" rdiff-backup --server"
     schema="$schema < <(cstream -v 1 -T 10 -t ${RATE_LIMIT:-300000})"
     schema="/bin/bash -c '$schema'"
     # echo "using schema: $schema"
@@ -76,15 +83,15 @@ backup()
     rdiff-backup --remote-schema "$schema" --force --remove-older-than "${MAX_INCREMENT_AGE:-1M12h}" "$dest"
 
     # rotate the log
-    ssh -S "${control_sock}" "backup@$ip" sudo savelog "${remote_backup_dir}/${path}/rdiff-backup-data/backup.log"
+    ssh -S "ssh_control" ubuntu@$ip sudo savelog "${remote_backup_dir}/${path}/rdiff-backup-data/backup.log"
 }
 
 run_backups
 
-ssh -S "${control_sock}" "backup@$ip" df "$remote_backup_dir" >> /root/backup/df.log
-
 # shut down the control master to avoid a perms error on the socket
-ssh -S "${control_sock}" "backup@$ip" -O exit
+ssh -S "ssh_control.backup" "backup@$ip" -O exit
+
+ssh -S "ssh_control" ubuntu@$ip df "$remote_backup_dir" >> /root/backup/df.log
 
 # need to stop the instance before we can take a snapshot
 sudo -u amazon "${amazon_dir}/terminate-instance.sh" -s -w "$out"
