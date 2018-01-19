@@ -49,7 +49,7 @@ backup()
 {
     path="$1"; shift
 
-    echo "backuing up: $path"
+    echo "backing up: $path"
 
     args="--terminal-verbosity 3 -v 8 --force \
           --exclude-globbing-filelist /etc/backup/exclusions.common \
@@ -76,10 +76,12 @@ backup()
     rdiff-backup --remote-schema "$schema" --force --remove-older-than "${MAX_INCREMENT_AGE:-1M12h}" "$dest"
 
     # rotate the log
-    "${amazon_dir}/amazon-ssh.sh" "$out" sudo savelog "${remote_backup_dir}/${path}/rdiff-backup-data/backup.log"
+    ssh -S "${control_sock}" "backup@$ip" sudo savelog "${remote_backup_dir}/${path}/rdiff-backup-data/backup.log"
 }
 
 run_backups
+
+ssh -S "${control_sock}" "backup@$ip" df "$remote_backup_dir" >> /root/backup/df.log
 
 # shut down the control master to avoid a perms error on the socket
 ssh -S "${control_sock}" "backup@$ip" -O exit
