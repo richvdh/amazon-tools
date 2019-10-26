@@ -25,5 +25,7 @@ sudo git submodule update
 sudo mkdir /root/backup
 echo <snapid> | sudo tee /root/backup/snapid
 
-# config in /etc/backup
+sudo mkdir /etc/backup
+sudo ln -s /usr/local/amazon-tools/etc/exclusions.common /etc/backup
+# other config in /etc/backup
 # wrapper script in /etc/cron.daily

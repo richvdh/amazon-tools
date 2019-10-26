@@ -1,0 +1,16 @@
+**/.kde/share/apps/kio_http/cache
+**/.kde/share/thumbnails
+**/.netscape/cache
+**/.mozilla/default/NewCache
+**/.mozilla/default/Cache
+**/.mozilla/default/**/Cache
+**/.firefox/default/**/Cache
+**/.thunderbird/default*/ImapMail
+**/.thunderbird/default*/panacea.dat
+**/.Arena/cache
+**/.enlightenment/cached
+**/Desktop/Trash
+**/core
+**/core.*
+**/*~
+**/.*~
