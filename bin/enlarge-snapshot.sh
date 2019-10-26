@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-# enlarge an amazon ebs snapshot
+# enlarges the backup snapshot
 #
 # usage:
 #  enlarge-snapshot.sh <new size> [<new desc>]
 #
 # new size: in GB
 #
-# emits new snapshot id. NB doesn't delete the old snapshot.
+# NB doesn't delete the old snapshot.
 
 set -e
 
@@ -25,10 +25,10 @@ newdesc="$2"
 
 snapid=`read_snapid`
 
-BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdf}
+BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/xvdf}
 
 # fire up an ec2 instance which we'll use to run the resize2fs command, with the snapshot attached
-out=`sudo -u anazon "${amazon_dir}/start-instance.sh" -- -b "$BACKUP_DEVICE=$snapid:$newsize"`
+out=`sudo -u amazon "${amazon_dir}/start-instance.sh" -- -b "$BACKUP_DEVICE=$snapid:$newsize"`
 
 cd "$out"
 instance_id=`cat instance_id`
@@ -50,7 +50,7 @@ sudo -u amazon "${amazon_dir}/amazon-ssh.sh" "$out" sudo resize2fs "$BACKUP_DEVI
 sudo -u amazon "${amazon_dir}/terminate-instance.sh" -s -w "$out"
 
 # get the volume id
-"${amazon_dir}/aws" --region "$region" --xml din "$instance_id" > din.tmp
+sudo -u amazon "${amazon_dir}/aws" --region "$region" --xml din "$instance_id" > din.tmp
 vol_id=`perl -ne 'BEGIN {$v=shift}
    /<blockDeviceMapping>/ and $b=1; next unless $b;
    /<deviceName>(.*)<\/deviceName>/ and $d=($1 eq $v); next unless $d;
@@ -59,7 +59,7 @@ rm din.tmp
 
 echo "creating S3 snapshot of resized volume" >&2
 newdesc="${newdesc:-enlarged $snapid}"
-"${amazon_dir}/aws" --region "$region" --xml csnap "$vol_id" --description "$newdesc" > csnap.out
+sudo -u amazon "${amazon_dir}/aws" --region "$region" --xml csnap "$vol_id" --description "$newdesc" > csnap.out
 newsnapid=`cat csnap.out | sed -e '/<snapshotId>/! d' -e 's/.*<snapshotId>//' -e 's/<.*//'`
 
 if [ -z "$newsnapid" ]; then
