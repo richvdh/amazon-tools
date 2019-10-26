@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # enlarge an amazon ebs snapshot
 #
@@ -28,7 +28,7 @@ snapid=`read_snapid`
 BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdf}
 
 # fire up an ec2 instance which we'll use to run the resize2fs command, with the snapshot attached
-out=`"${amazon_dir}/start-instance.sh" -- -b "$BACKUP_DEVICE=$snapid:$newsize"`
+out=`"sudo -u anazon ${amazon_dir}/start-instance.sh" -- -b "$BACKUP_DEVICE=$snapid:$newsize"`
 
 cd "$out"
 instance_id=`cat instance_id`
@@ -38,16 +38,16 @@ trap 'echo "warning: ec2 instance $instance_id still extant" &>2' EXIT
 
 # resize2fs requires us to run a fsck before it will do its stuff
 echo "running e2fsck..." >&2
-"${amazon_dir}/amazon-ssh.sh" -s "-t" "$out" sudo e2fsck -f -v "$BACKUP_DEVICE"
+sudo -u amazon "${amazon_dir}/amazon-ssh.sh" -s "-t" "$out" sudo e2fsck -f -v "$BACKUP_DEVICE"
 
 echo "running resize2fs..." >&2
-"${amazon_dir}/amazon-ssh.sh" "$out" sudo resize2fs "$BACKUP_DEVICE"
+sudo -u amazon "${amazon_dir}/amazon-ssh.sh" "$out" sudo resize2fs "$BACKUP_DEVICE"
 
 # need to shut down the instance before we can take a snapshot.
 # Note that this only stops the instance, rather than terminating it,
 # so that we know the device is still kicking around. We do the actual
 # termination below.
-"${amazon_dir}/terminate-instance.sh" -s -w "$out"
+sudo -u amazon "${amazon_dir}/terminate-instance.sh" -s -w "$out"
 
 # get the volume id
 "${amazon_dir}/aws" --region "$region" --xml din "$instance_id" > din.tmp
@@ -74,5 +74,5 @@ echo "snapshot id: $newsnapid"
 mv "$snapid_file" "${snapid_file}.0"
 echo $newsnapid > "$snapid_file"
 
-"${amazon_dir}/terminate-instance.sh" "$out"
+sudo -u amazon "${amazon_dir}/terminate-instance.sh" "$out"
 trap - EXIT
