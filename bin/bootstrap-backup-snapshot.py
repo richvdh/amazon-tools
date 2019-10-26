@@ -77,5 +77,5 @@ print ("Snapshot is %s." % resp['SnapshotId'])
 
 # and finally terminate the instance
 client.terminate_instances(
-    InstanceId=[instance_id],
+    InstanceIds=[instance_id],
 )

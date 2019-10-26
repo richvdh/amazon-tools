@@ -1,24 +1,29 @@
 Bootstrapping a backup instance
 ----
-use ./bin/bootstrap-backup-snapshot to create snapshot
+
+use ./bin/bootstrap-backup-snapshot (on a local machine) to create an empty
+snapshot
 
 # on host:
-apt-get install lockfile-progs rdiff-backup cstream
+sudo apt-get install lockfile-progs rdiff-backup cstream
 
-adduser --system --disabled-password amazon
-echo "--region=eu-west-1" > ~amazon/.awsrc
+sudo adduser --system --disabled-password amazon
+echo "--region=eu-west-1" | sudo tee ~amazon/.awsrc
 
 # create IAM user and access key
 # creds go in ~amazon/.awssecret, which should be chmod 600
 
+sudo ssh-keygen -t ecdsa
+# add pub key to ../etc/userdata/backups-ssh-key.sh
+
 cd /usr/local
 
-git clone git@github.com:richvdh/amazon-tools.git
-git submodule init
-git submodule update
+sudo git clone http://github.com/richvdh/amazon-tools.git
+sudo git submodule init
+sudo git submodule update
 
-mkdir ~/backup
-echo <snapid> > ~/backup/snapid
+sudo mkdir /root/backup
+echo <snapid> | sudo tee /root/backup/snapid
 
 # config in /etc/backup
 # wrapper script in /etc/cron.daily
