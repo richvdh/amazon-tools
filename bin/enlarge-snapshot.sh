@@ -28,7 +28,7 @@ snapid=`read_snapid`
 BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdf}
 
 # fire up an ec2 instance which we'll use to run the resize2fs command, with the snapshot attached
-out=`"sudo -u anazon ${amazon_dir}/start-instance.sh" -- -b "$BACKUP_DEVICE=$snapid:$newsize"`
+out=`sudo -u anazon "${amazon_dir}/start-instance.sh" -- -b "$BACKUP_DEVICE=$snapid:$newsize"`
 
 cd "$out"
 instance_id=`cat instance_id`
