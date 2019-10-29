@@ -5,13 +5,12 @@ use ./bin/bootstrap-backup-snapshot (on a local machine) to create an empty
 snapshot
 
 # on host:
-sudo apt-get install lockfile-progs rdiff-backup cstream
+sudo apt-get install lockfile-progs rdiff-backup cstream awscli
 
 sudo adduser --system --disabled-password amazon
-echo "--region=eu-west-1" | sudo tee ~amazon/.awsrc
 
-# create IAM user and access key
-# creds go in ~amazon/.awssecret, which should be chmod 600
+# create IAM user and access key, then add with:
+sudo -u amazon aws configure
 
 sudo ssh-keygen -t ecdsa
 # add pub key to ../etc/userdata/backups-ssh-key.sh
@@ -19,8 +18,6 @@ sudo ssh-keygen -t ecdsa
 cd /usr/local
 
 sudo git clone http://github.com/richvdh/amazon-tools.git
-sudo git submodule init
-sudo git submodule update
 
 sudo mkdir /root/backup
 echo <snapid> | sudo tee /root/backup/snapid

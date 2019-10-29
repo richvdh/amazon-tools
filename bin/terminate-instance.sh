@@ -33,18 +33,15 @@ wd="$1"
 instance_id=`cat "$wd/instance_id"`
 region=`cat "$wd/aws_region"`
 
-out=`"${amazon_dir}/aws" --region "$region" --xml "$cmd" "$instance_id"`
-if echo $out | grep -i '<error>' > /dev/null; then
-    echo "error terminating instance:" >&2
-    echo $out >&2
-    exit 1
-fi
+"${amazon_dir}/aws" --region "$region" ec2 "$cmd" --instance-ids "$instance_id" >/dev/null
 
 if [ -n "$wait" ]; then
     echo -n "waiting for instance to stop" >&2
     a=0
-    while state=$("${amazon_dir}/aws" --region "$region" describe-instances --simple "$instance_id" | \
-        cut -f2) && [ "$state" = 'shutting-down' -o "$state" = 'stopping' ]; do
+    while state=$("${amazon_dir}/aws" --region "$region" ec2 describe-instances \
+            --output text --query 'Reservations[*].Instances[*].[State.Name]' \
+            --instance-ids "$instance_id"
+    ) && [ "$state" = 'shutting-down' -o "$state" = 'stopping' ]; do
         if [ $a -gt 200 ]; then
             echo -e "\nGave up after 200 secs" >&2
             exit 1
@@ -59,5 +56,3 @@ fi
 if [ -z "$keep" ]; then
     rm -r "$wd"
 fi
-
-

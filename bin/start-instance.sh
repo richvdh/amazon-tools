@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# start up an amazon instance. 
+# start up an amazon instance.
 # writes out the name of a working directory, which
 # contains the following (among other stuff):
 #   ip  - ip address of instance
@@ -18,8 +18,8 @@ set -e
 # instance ids available at
 #   https://cloud-images.ubuntu.com/locator/
 #
-# 64-bit hvm eu-west-1
-AMI_ID=ami-cd0fd6be
+# amd64 hvm-ssd eu-west-1
+AMI_ID=ami-0ae0cb89fc578cd9c
 EC2_INSTANCE_TYPE=t2.micro
 SUBNET_ID=subnet-f423fc91
 if [ -z "$AMAZON_ZONE" ]; then
@@ -53,7 +53,8 @@ if [ -z "$region" ]; then
 fi
 
 echo "starting instance in zone ${AMAZON_ZONE}" >&2
-set -- --region "${region}" --availability-zone "$AMAZON_ZONE" "$@"
+set -- --region "${region}" "$@"
+# set -- --availability-zone "$AMAZON_ZONE" "$@"
 
 # make work dir
 wd=`mktemp -t -d amazon.XXXXXXXX`
@@ -68,13 +69,13 @@ terminate_instance() {
         if [ -f "$wd/ip" ]; then
             ip=`cat "$wd/ip"`
             echo "cloud-init log follows:">&2
+            ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa ubuntu@$ip \
+               cat /var/log/cloud-init.log >&2 || true
+            echo "----END---" >&2
         fi
-        ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa ubuntu@$ip \
-           cat /var/log/cloud-init.log >&2 || true
-        echo "----END---" >&2
 
         echo "terminating instance...">&2
-        "${amazon_dir}/aws" --region "$region" terminate-instances "$instance_id"
+        "${amazon_dir}/aws" --region "$region" ec2 terminate-instances --instance-ids "$instance_id"
 
         echo "waiting for console output to become available..." >&2
         sleeptime=120
@@ -87,7 +88,7 @@ terminate_instance() {
         fi
 
         echo "Console output follows:" >&2
-        "${amazon_dir}/aws" --region "$region" get-console-output "$instance_id" >&2
+        "${amazon_dir}/aws" --region "$region" ec2 get-console-output --instance-id "$instance_id" >&2
         echo "----END---" >&2
     fi
     cd /
@@ -127,19 +128,19 @@ gzip userdata.txt
 
 
 echo "starting instance..." >&2
-"${amazon_dir}/aws" run-instances \
- --simple \
- -instance-type "$EC2_INSTANCE_TYPE" \
- -instance-initiated-shutdown-behavior terminate \
- -user-data-file userdata.txt.gz \
- -net-device-index 0 \
- -net-associate-public-ip-address True \
- -net-subnet "$SUBNET_ID" \
+"${amazon_dir}/aws" ec2 run-instances \
+ --output text \
+ --query 'Instances[*].[InstanceId]' \
+ --instance-type "$EC2_INSTANCE_TYPE" \
+ --instance-initiated-shutdown-behavior terminate \
+ --user-data fileb://userdata.txt.gz \
+ --associate-public-ip-address \
+ --subnet-id "$SUBNET_ID" \
+ --image-id "$AMI_ID" \
  "$@" \
- "$AMI_ID" \
  > "run-output" || { cat "run-output" >&2; exit 1; }
 
-instance_id=`cat "run-output" | cut -f1`
+instance_id=`cat run-output`
 echo "instance id: $instance_id" >&2
 
 if [ -z "$instance_id" ]; then
@@ -153,30 +154,23 @@ echo $instance_id > instance_id
 echo -n "waiting for instance to start" >&2
 a=0
 while true; do
-    "${amazon_dir}/aws" describe-instances --region "$region" --xml "$instance_id" > "run-output"
+    "${amazon_dir}/aws" ec2 describe-instances --region "$region" \
+        --output text \
+        --query 'Reservations[*].Instances[*].[State.Name, PublicIpAddress]' \
+        --instance-ids "$instance_id" > "run-output"
 
-    # look for 'instance doesn't exist yet' error
-    if grep -q '<Error>' "run-output"; then
-        if ! grep -q '<Code>InvalidInstanceID.NotFound</Code>' "run-output"; then
-	    echo "Error starting instance: ... " >&2
-            cat "run-output" >&2
-	    exit 1
-        fi
-    else
-        state=`perl -ne '$a=1 if(/<instanceState>/); if($a && /<name>(.*)<\/name>/) { print $1; exit }' run-output`
-        case "$state" in
-            running)
-	        # done
-	        break
-		;;
-	    pending)
-	        # loop
-	        ;;
-	    *)
-                echo -e "unexpected instance state $state" >&2
-                exit 1
-        esac
-    fi
+    state=`cat run-output | cut -f1`
+    case "$state" in
+        running)
+            break
+	    ;;
+	pending)
+	    # loop
+	    ;;
+	*)
+            echo -e "unexpected instance state $state" >&2
+            exit 1
+    esac
 
     if [ $a -gt 200 ]; then
 	echo -e "\nGave up after 200 secs" >&2
@@ -187,9 +181,8 @@ while true; do
     sleep 1
 done
 
-	
-ip=`cat "run-output" | sed -e '/<ipAddress>/! d' -e 's/.*<ipAddress>//' -e 's/<.*//'`
-if [ -z "$ip" ]; then
+ip=`cat "run-output" | cut -f2`
+if [ -z "$ip" -o "$ip" == "None" ]; then
     echo "unable to read ip from output:" >&2
     cat "run-output" >&2
     exit 1

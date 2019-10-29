@@ -33,12 +33,17 @@ trap 'remove_lockfile' EXIT
 snapid=`read_snapid`
 
 BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdf}
-out=`sudo -u amazon "${amazon_dir}/start-instance.sh" -u "${etc_dir}/userdata/backup-server.yaml" -u "${etc_dir}/userdata/backups-ssh-key.sh" -- -b "${BACKUP_DEVICE}=${snapid}:::gp2"`
-trap 'remove_lockfile; sudo -u amazon "'${amazon_dir}'/terminate-instance.sh" "'$out'"' EXIT
+out=$(sudo -Hu amazon "${amazon_dir}/start-instance.sh" \
+    -u "${etc_dir}/userdata/backup-server.yaml" \
+    -u "${etc_dir}/userdata/backups-ssh-key.sh" \
+    -- --block-device-mappings "DeviceName=${BACKUP_DEVICE},Ebs={SnapshotId=$snapid,VolumeType=gp2}"
+)
+trap 'remove_lockfile; sudo -Hu amazon "'${amazon_dir}'/terminate-instance.sh" "'$out'"' EXIT
 
 cd "$out"
 instance_id=`cat instance_id`
 ip=`cat ip`
+region=`cat aws_region`
 
 remote_backup_dir="/mnt"
 echo "mounting backup drive"
@@ -68,7 +73,7 @@ backup()
     # sends any data, hence the cstream never notices the ssh has died,
     # hence the pipe persists).
     #
-    # rdiff-backup uses subprocess.py, which hardcodes /bin/sh, which 
+    # rdiff-backup uses subprocess.py, which hardcodes /bin/sh, which
     # doesn't support process substitutions. sigh.
     #
     schema="ssh -S ssh_control.backup \"%s\" rdiff-backup --server"
@@ -94,32 +99,31 @@ ssh -S "ssh_control.backup" "backup@$ip" -O exit
 ssh -S "ssh_control" ubuntu@$ip df "$remote_backup_dir" >> /root/backup/df.log
 
 # need to stop the instance before we can take a snapshot
-sudo -u amazon "${amazon_dir}/terminate-instance.sh" -s -w "$out"
+sudo -Hu amazon "${amazon_dir}/terminate-instance.sh" -s -w "$out"
 
 # get the volume id
-sudo -u amazon "${amazon_dir}/aws" --xml din "$instance_id" > din.tmp
-vol_id=`perl -ne 'BEGIN {$v=shift}
-   /<blockDeviceMapping>/ and $b=1; next unless $b;
-   /<deviceName>(.*)<\/deviceName>/ and $d=($1 eq $v); next unless $d;
-   if(/<volumeId>(.*)<\/volumeId>/) {print "$1\n"; exit 0}' ${BACKUP_DEVICE} < din.tmp`
-rm din.tmp
+vol_id=$(sudo -Hu amazon "${amazon_dir}/aws" ec2 describe-instances \
+    --region "$region" \
+    --output text \
+    --query "Reservations[*].Instances[*].BlockDeviceMappings[?DeviceName==\`${BACKUP_DEVICE}\`].Ebs.VolumeId" \
+    --instance-ids "$instance_id"
+)
 
 echo "creating S3 snapshot of backup volume"
 desc="`hostname -s` backup `date +'%Y%m%d'`"
-sudo -u amazon "${amazon_dir}/aws" --xml csnap "$vol_id" --description "$desc" > csnap.out
-newsnapid=`cat csnap.out | sed -e '/<snapshotId>/! d' -e 's/.*<snapshotId>//' -e 's/<.*//'`
-
-if [ -z "$newsnapid" ]; then
-    echo "unable to retrieve snapshot id:" >&2
-    cat csnap.out >&2
-    rm csnap.out
-    exit 1
-fi
-rm csnap.out
+newsnapid=$(sudo -Hu amazon "${amazon_dir}/aws" ec2 create-snapshot \
+    --region "$region" \
+    --output text \
+    --query 'SnapshotId' \
+    --description "$desc" \
+    --volume-id "$vol_id"
+)
 
 echo "snapshot id: $newsnapid"
 mv "$snapid_file" "${snapid_file}.0"
 echo $newsnapid > "$snapid_file"
 
 echo "deleting old snapshot $snapid"
-sudo -u amazon "${amazon_dir}/aws" delete-snapshot "$snapid"
+sudo -Hu amazon "${amazon_dir}/aws" ec2 delete-snapshot \
+    --region "$region" \
+    --snapshot-id "$snapid"
