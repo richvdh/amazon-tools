@@ -44,9 +44,8 @@ ip=`cat ip`
 region=`cat aws_region`
 
 echo "adding ssh key to backup@"
-most_recent_id="$(ls -t $HOME/.ssh/id*.pub | head -n 1)"
-ssh_key="$(cat $most_recent_id)"
-echo 'command="rdiff-backup --server --restrict /mnt",no-port-forwarding,no-X11-forwarding,no-pty '"$most_recent_id" |
+ssh_key="$(cat id_rsa.pub)"
+echo 'command="rdiff-backup --server --restrict /mnt",no-port-forwarding,no-X11-forwarding,no-pty '"$ssh_key" |
     ssh -S "ssh_control" ubuntu@$ip sudo tee -a "~backup/.ssh/authorized_keys"
 
 remote_backup_dir="/mnt"
@@ -56,7 +55,7 @@ ssh -S "ssh_control" ubuntu@$ip sudo mount $BACKUP_DEVICE_MOUNT_OPTIONS /dev/xvd
 echo "starting SSH master for backup@$ip"
 ssh -C -M -S "ssh_control.backup" -oControlPersist=yes \
     -oStrictHostKeyChecking=yes -oUserKnownHostsFile="$out/known_hosts" \
-    "backup@$ip" -O forward
+    -i id_rsa "backup@$ip" -O forward
 
 backup()
 {
