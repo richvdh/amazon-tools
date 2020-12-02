@@ -12,9 +12,6 @@ sudo adduser --system --disabled-password amazon
 # create IAM user and access key, then add with:
 sudo -u amazon aws configure
 
-sudo ssh-keygen -t ecdsa
-# add pub key to ../etc/userdata/backups-ssh-key.sh
-
 cd /usr/local
 
 sudo git clone http://github.com/richvdh/amazon-tools.git

@@ -19,16 +19,3 @@ function read_snapid
     echo $snapid
 }
 
-# start the backup instance. Writes out the name of the state dir
-function start_backup_instance
-{
-    # faith's backup device is a disk; buffy's is a partition...
-    BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdc}
-    su amazon -c "\"${amazon_dir}/start-instance.sh\" -u \"${etc_dir}/userdata/backup-server.yaml\" -u \"${etc_dir}/userdata/backups-ssh-key.sh\" -- -b \"${BACKUP_DEVICE}=$snapid\""
-}
-
-function mount_backup_device
-{
-    echo "mounting backup drive"
-    ssh -S ssh_control ubuntu@$ip sudo mount /dev/sdc1 /mnt
-}

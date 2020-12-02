@@ -5,9 +5,8 @@
 #   ubuntu@, which must have sudo permissions. We create an ssh keypair locally
 #     and grant access for it via the userdata.
 #
-#   backup@, which is used to run the rdiff-backup server. Access to this is
-#     configured by a *hardcoded* list of authorized_keys in
-#     ../etc/userdata/backups-ssh-key.sh
+#   backup@, which is used to run the rdiff-backup server. We add ssh access to
+#     that after booting.
 
 set -e
 
@@ -35,7 +34,6 @@ snapid=`read_snapid`
 BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdf}
 out=$(sudo -Hu amazon "${amazon_dir}/start-instance.sh" \
     -u "${etc_dir}/userdata/backup-server.yaml" \
-    -u "${etc_dir}/userdata/backups-ssh-key.sh" \
     -- --block-device-mappings "DeviceName=${BACKUP_DEVICE},Ebs={SnapshotId=$snapid,VolumeType=gp2}"
 )
 trap 'remove_lockfile; sudo -Hu amazon "'${amazon_dir}'/terminate-instance.sh" "'$out'"' EXIT
@@ -45,13 +43,16 @@ instance_id=`cat instance_id`
 ip=`cat ip`
 region=`cat aws_region`
 
+echo "adding ssh key to backup@"
+most_recent_id="$(ls -t $HOME/.ssh/id*.pub | head -n 1)"
+ssh_key="$(cat $most_recent_id)"
+echo 'command="rdiff-backup --server --restrict /mnt",no-port-forwarding,no-X11-forwarding,no-pty '"$most_recent_id" |
+    ssh -S "ssh_control" ubuntu@$ip sudo tee -a "~backup/.ssh/authorized_keys"
+
 remote_backup_dir="/mnt"
 echo "mounting backup drive"
 ssh -S "ssh_control" ubuntu@$ip sudo mount $BACKUP_DEVICE_MOUNT_OPTIONS /dev/xvdf "${remote_backup_dir}"
 
-# if this fails with a public key error, check that root@ has been
-# given permission to ssh to backup@; in particular, check out
-# userdata/backups-ssh-key.sh
 echo "starting SSH master for backup@$ip"
 ssh -C -M -S "ssh_control.backup" -oControlPersist=yes \
     -oStrictHostKeyChecking=yes -oUserKnownHostsFile="$out/known_hosts" \
