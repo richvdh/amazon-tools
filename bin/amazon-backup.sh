@@ -55,7 +55,7 @@ ssh -S "ssh_control" ubuntu@$ip sudo mount $BACKUP_DEVICE_MOUNT_OPTIONS /dev/xvd
 echo "starting SSH master for backup@$ip"
 ssh -C -M -S "ssh_control.backup" -oControlPersist=yes \
     -oStrictHostKeyChecking=yes -oUserKnownHostsFile="$out/known_hosts" \
-    "backup@$ip" -O forward
+    -i id_rsa "backup@$ip" -O forward
 
 backup()
 {
