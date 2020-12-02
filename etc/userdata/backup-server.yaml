@@ -20,20 +20,11 @@ runcmd:
  # we don't end up with a dangling instance.
  - echo "/sbin/shutdown -h +5" | at now + 48 hours
 
-users:
-  - default
-  - name: backup
-    ssh_authorized_keys: []
-    shell: /bin/bash
+ # create a .ssh directory for the backup user
+ - mkdir -p ~backup/.ssh
+ - touch ~backup/.ssh/authorized_keys
+ - chown -R backup ~backup/.ssh
+ - chmod 600 ~backup/.ssh/authorized_keys
 
----
-#!/bin/sh
-#
-# create a .ssh directory for the backup user
-
-set -e -x
-
-mkdir -p ~backup/.ssh
-touch ~backup/.ssh/authorized_keys
-chown -R backup ~backup/.ssh
-chmod 600 ~backup/.ssh/authorized_keys
+ # and enable a shell
+ - chsh -s /bin/bash backup
