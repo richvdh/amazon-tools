@@ -56,6 +56,11 @@ ssh_key="$(cat id_rsa.pub)"
 echo 'command="rdiff-backup --server --restrict /mnt",no-port-forwarding,no-X11-forwarding,no-pty '"$ssh_key" |
     ssh -S "ssh_control" ubuntu@$ip sudo tee -a "~backup/.ssh/authorized_keys"
 
+if [ -z "$snapid" ]; then
+    echo "formatting new backup volume"
+    ssh -S "ssh_control" ubuntu@$ip sudo mkfs -t ext4 /dev/xvdf
+fi
+
 remote_backup_dir="/mnt"
 echo "mounting backup drive"
 ssh -S "ssh_control" ubuntu@$ip sudo mount $BACKUP_DEVICE_MOUNT_OPTIONS /dev/xvdf "${remote_backup_dir}"
