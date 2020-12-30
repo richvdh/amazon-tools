@@ -64,6 +64,7 @@ fi
 remote_backup_dir="/mnt"
 echo "mounting backup drive"
 ssh -S "ssh_control" ubuntu@$ip sudo mount $BACKUP_DEVICE_MOUNT_OPTIONS /dev/xvdf "${remote_backup_dir}"
+ssh -S "ssh_control" ubuntu@$ip sudo chown backup "${remote_backup_dir}"
 
 echo "starting SSH master for backup@$ip"
 ssh -C -M -S "ssh_control.backup" -oControlPersist=yes \
@@ -109,6 +110,7 @@ run_backups
 # shut down the control master to avoid a perms error on the socket
 ssh -S "ssh_control.backup" "backup@$ip" -O exit
 
+mkdir -p /root/backup
 ssh -S "ssh_control" ubuntu@$ip df "$remote_backup_dir" >> /root/backup/df.log
 
 # need to stop the instance before we can take a snapshot
@@ -133,7 +135,7 @@ newsnapid=$(sudo -Hu amazon "${amazon_dir}/aws" ec2 create-snapshot \
 )
 
 echo "snapshot id: $newsnapid"
-mv "$snapid_file" "${snapid_file}.0" || true
+mv "$snapid_file" "${snapid_file}.0" 2>/dev/null || true
 echo $newsnapid > "$snapid_file"
 
 if [ -n "$snapid" ]; then
