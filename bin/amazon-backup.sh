@@ -29,12 +29,20 @@ function remove_lockfile
 
 trap 'remove_lockfile' EXIT
 
-snapid=`read_snapid`
-
 BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdf}
+
+if [ -f "$snapid_file" ]; then
+    snapid=`read_snapid`
+    backup_device_opts="Ebs={SnapshotId=$snapid,VolumeType=gp2}"
+else
+    echo "$snapid_file does not exist; will start with a new 20G volume"
+    snapid=""
+    backup_device_opts="Ebs={VolumeSize=20,VolumeType=gp2}"
+fi
+
 out=$(sudo -Hu amazon "${amazon_dir}/start-instance.sh" \
     -u "${etc_dir}/userdata/backup-server.yaml" \
-    -- --block-device-mappings "DeviceName=${BACKUP_DEVICE},Ebs={SnapshotId=$snapid,VolumeType=gp2}"
+    -- --block-device-mappings "DeviceName=${BACKUP_DEVICE},${backup_device_opts}"
 )
 trap 'remove_lockfile; sudo -Hu amazon "'${amazon_dir}'/terminate-instance.sh" "'$out'"' EXIT
 
@@ -120,10 +128,12 @@ newsnapid=$(sudo -Hu amazon "${amazon_dir}/aws" ec2 create-snapshot \
 )
 
 echo "snapshot id: $newsnapid"
-mv "$snapid_file" "${snapid_file}.0"
+mv "$snapid_file" "${snapid_file}.0" || true
 echo $newsnapid > "$snapid_file"
 
-echo "deleting old snapshot $snapid"
-sudo -Hu amazon "${amazon_dir}/aws" ec2 delete-snapshot \
-    --region "$region" \
-    --snapshot-id "$snapid"
+if [ -n "$snapid" ]; then
+    echo "deleting old snapshot $snapid"
+    sudo -Hu amazon "${amazon_dir}/aws" ec2 delete-snapshot \
+        --region "$region" \
+        --snapshot-id "$snapid"
+fi
