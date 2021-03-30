@@ -19,7 +19,7 @@ set -e
 #   https://cloud-images.ubuntu.com/locator/
 #
 # amd64 hvm-ssd eu-west-1
-AMI_ID=ami-0ae0cb89fc578cd9c
+AMI_ID=ami-0b7fd7bc9c6fb1c78
 EC2_INSTANCE_TYPE=t2.micro
 SUBNET_ID=subnet-f423fc91
 if [ -z "$AMAZON_ZONE" ]; then
