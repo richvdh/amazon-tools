@@ -5,7 +5,7 @@
 # contains the following (among other stuff):
 #   ip  - ip address of instance
 #   instance_id - id of instance
-#   id_rsa - ssh key which has perms for ubuntu@$ip
+#   id_rsa - ssh key which has perms for admin@$ip
 #
 # TODO: figure out how to get most recent ubuntu AMI
 # TODO: rewrite in python, or something. maybe with boto.
@@ -16,10 +16,8 @@
 set -e
 
 # instance ids available at
-#   https://cloud-images.ubuntu.com/locator/
-#
-# amd64 hvm-ssd eu-west-1
-AMI_ID=ami-0b7fd7bc9c6fb1c78
+#   https://wiki.debian.org/Cloud/AmazonEC2Image/Bullseye
+AMI_ID=ami-0f87948fe2cf1b2a4
 EC2_INSTANCE_TYPE=t2.micro
 SUBNET_ID=subnet-f423fc91
 if [ -z "$AMAZON_ZONE" ]; then
@@ -69,7 +67,7 @@ terminate_instance() {
         if [ -f "$wd/ip" ]; then
             ip=`cat "$wd/ip"`
             echo "cloud-init log follows:">&2
-            ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa ubuntu@$ip \
+            ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa admin@$ip \
                cat /var/log/cloud-init.log >&2 || true
             echo "----END---" >&2
         fi
@@ -199,10 +197,10 @@ a=0
 while ! ssh \
         -M -S ssh_control -oControlPersist=yes \
         -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts \
-        -i id_rsa ubuntu@$ip echo ok &>/dev/null; do
+        -i id_rsa admin@$ip echo ok &>/dev/null; do
     if [ $a -gt 200 ]; then
 	echo -e "\nGave up after 200 secs; giving one last try" >&2
-        ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa ubuntu@$ip echo ok 
+        ssh -oStrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -i id_rsa admin@$ip echo ok 
 	exit 1
     fi
     let a=a+1
@@ -213,7 +211,7 @@ echo >&2
 
 echo -n "waiting for boot to complete" >&2
 a=0
-while ! ssh -S ssh_control ubuntu@$ip \
+while ! ssh -S ssh_control admin@$ip \
        test -f /var/lib/cloud/instance/boot-finished; do
     if [ $a -gt 100 ]; then
 	echo -e "\nGave up after 100 secs" >&2

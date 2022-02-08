@@ -25,4 +25,4 @@ cd "$1"
 shift
 
 ip=`cat ip`
-exec ssh -S "ssh_control" "${sshopts[@]}" ubuntu@$ip "$@"
+exec ssh -S "ssh_control" "${sshopts[@]}" admin@$ip "$@"

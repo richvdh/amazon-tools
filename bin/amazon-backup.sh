@@ -2,7 +2,7 @@
 #
 # This script uses two separate users on the remote server:
 #
-#   ubuntu@, which must have sudo permissions. We create an ssh keypair locally
+#   admin@, which must have sudo permissions. We create an ssh keypair locally
 #     and grant access for it via the userdata.
 #
 #   backup@, which is used to run the rdiff-backup server. We add ssh access to
@@ -54,17 +54,17 @@ region=`cat aws_region`
 echo "adding ssh key to backup@"
 ssh_key="$(cat id_rsa.pub)"
 echo 'command="rdiff-backup --server --restrict /mnt",no-port-forwarding,no-X11-forwarding,no-pty '"$ssh_key" |
-    ssh -S "ssh_control" ubuntu@$ip sudo tee -a "~backup/.ssh/authorized_keys"
+    ssh -S "ssh_control" admin@$ip sudo tee -a "~backup/.ssh/authorized_keys"
 
 if [ -z "$snapid" ]; then
     echo "formatting new backup volume"
-    ssh -S "ssh_control" ubuntu@$ip sudo mkfs -t ext4 /dev/xvdf
+    ssh -S "ssh_control" admin@$ip sudo mkfs -t ext4 /dev/xvdf
 fi
 
 remote_backup_dir="/mnt"
 echo "mounting backup drive"
-ssh -S "ssh_control" ubuntu@$ip sudo mount $BACKUP_DEVICE_MOUNT_OPTIONS /dev/xvdf "${remote_backup_dir}"
-ssh -S "ssh_control" ubuntu@$ip sudo chown backup "${remote_backup_dir}"
+ssh -S "ssh_control" admin@$ip sudo mount $BACKUP_DEVICE_MOUNT_OPTIONS /dev/xvdf "${remote_backup_dir}"
+ssh -S "ssh_control" admin@$ip sudo chown backup "${remote_backup_dir}"
 
 echo "starting SSH master for backup@$ip"
 ssh -C -M -S "ssh_control.backup" -oControlPersist=yes \
@@ -102,7 +102,7 @@ backup()
     rdiff-backup --remote-schema "$schema" --force --remove-older-than "${MAX_INCREMENT_AGE:-1M12h}" "$dest"
 
     # rotate the log
-    ssh -S "ssh_control" ubuntu@$ip sudo savelog "${remote_backup_dir}/${path}/rdiff-backup-data/backup.log"
+    ssh -S "ssh_control" admin@$ip sudo savelog "${remote_backup_dir}/${path}/rdiff-backup-data/backup.log"
 }
 
 run_backups
@@ -111,7 +111,7 @@ run_backups
 ssh -S "ssh_control.backup" "backup@$ip" -O exit
 
 mkdir -p /root/backup
-ssh -S "ssh_control" ubuntu@$ip df "$remote_backup_dir" >> /root/backup/df.log
+ssh -S "ssh_control" admin@$ip df "$remote_backup_dir" >> /root/backup/df.log
 
 # need to stop the instance before we can take a snapshot
 sudo -Hu amazon "${amazon_dir}/terminate-instance.sh" -s -w "$out"

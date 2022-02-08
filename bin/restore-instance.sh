@@ -26,7 +26,7 @@ instance_id=`cat instance_id`
 ip=`cat ip`
 
 echo "mounting backup drive"
-ssh -o StrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -iid_rsa ubuntu@$ip sudo mount /dev/xvdf /mnt
+ssh -o StrictHostKeyChecking=yes -oUserKnownHostsFile=known_hosts -iid_rsa admin@$ip sudo mount /dev/xvdf /mnt
 
 
 echo "EC2 instance started at $ip; ssh via \"${amazon_dir}/amazon-ssh.sh\" $out."
