@@ -9,6 +9,7 @@
 #     that after booting.
 
 set -e
+set -o pipefail
 
 amazon_dir=$(dirname "$(readlink -f "$0")")
 
@@ -30,6 +31,7 @@ function remove_lockfile
 trap 'remove_lockfile' EXIT
 
 BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/sdf}
+system_backup_device=/dev/xvdf
 
 if [ -f "$snapid_file" ]; then
     snapid=`read_snapid`
@@ -56,14 +58,21 @@ ssh_key="$(cat id_rsa.pub)"
 echo 'command="rdiff-backup --server --restrict /mnt",no-port-forwarding,no-X11-forwarding,no-pty '"$ssh_key" |
     ssh -S "ssh_control" admin@$ip sudo tee -a "~backup/.ssh/authorized_keys"
 
+if [ -n "$BACKUP_PASSPHRASE" ]; then
+    echo "unlocking encrypted drive"
+    echo -n "$BACKUP_PASSPHRASE" |
+        ssh -S "ssh_control" admin@$ip sudo cryptsetup open "$system_backup_device" crypt_backup
+    system_backup_device=/dev/mapper/crypt_backup
+fi
+
 if [ -z "$snapid" ]; then
     echo "formatting new backup volume"
-    ssh -S "ssh_control" admin@$ip sudo mkfs -t ext4 /dev/xvdf
+    ssh -S "ssh_control" admin@$ip sudo mkfs -t ext4 "$system_backup_device"
 fi
 
 remote_backup_dir="/mnt"
 echo "mounting backup drive"
-ssh -S "ssh_control" admin@$ip sudo mount $BACKUP_DEVICE_MOUNT_OPTIONS /dev/xvdf "${remote_backup_dir}"
+ssh -S "ssh_control" admin@$ip sudo mount $BACKUP_DEVICE_MOUNT_OPTIONS "${system_backup_device}" "${remote_backup_dir}"
 ssh -S "ssh_control" admin@$ip sudo chown backup "${remote_backup_dir}"
 
 echo "starting SSH master for backup@$ip"

@@ -12,6 +12,7 @@
 # - source: deb-src http://security.ubuntu.com/ubuntu lucid-security multiverse
 
 packages:
+ - cryptsetup-bin
  - rdiff-backup
  - at
 
