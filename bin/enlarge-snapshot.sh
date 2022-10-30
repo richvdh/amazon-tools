@@ -26,9 +26,10 @@ newdesc="$2"
 snapid=`read_snapid`
 
 BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/xvdf}
+system_backup_device=/dev/xvdf
 
 # fire up an ec2 instance which we'll use to run the resize2fs command, with the snapshot attached
-out=`sudo -u amazon "${amazon_dir}/start-instance.sh" -- -b "$BACKUP_DEVICE=$snapid:$newsize"`
+out=`sudo -u amazon "${amazon_dir}/start-instance.sh" -- --block-device-mappings "DeviceName=${BACKUP_DEVICE},Ebs={SnapshotId=$snapid,VolumeType=gp2,VolumeSize=${newsize}}"`
 
 cd "$out"
 instance_id=`cat instance_id`
@@ -36,12 +37,19 @@ ip=`cat ip`
 region=`cat aws_region`
 trap 'echo "warning: ec2 instance $instance_id still extant" &>2' EXIT
 
+if [ -n "$BACKUP_PASSPHRASE" ]; then
+    echo "unlocking encrypted drive"
+    echo -n "$BACKUP_PASSPHRASE" |
+        ssh -S "ssh_control" admin@$ip sudo cryptsetup open "$system_backup_device" crypt_backup
+    system_backup_device=/dev/mapper/crypt_backup
+fi
+
 # resize2fs requires us to run a fsck before it will do its stuff
 echo "running e2fsck..." >&2
-sudo -u amazon "${amazon_dir}/amazon-ssh.sh" -s "-t" "$out" sudo e2fsck -f -v "$BACKUP_DEVICE"
+sudo -u amazon "${amazon_dir}/amazon-ssh.sh" -s "-t" "$out" sudo e2fsck -f -v "$system_backup_device"
 
 echo "running resize2fs..." >&2
-sudo -u amazon "${amazon_dir}/amazon-ssh.sh" "$out" sudo resize2fs "$BACKUP_DEVICE"
+sudo -u amazon "${amazon_dir}/amazon-ssh.sh" "$out" sudo resize2fs "$system_backup_device"
 
 # need to shut down the instance before we can take a snapshot.
 # Note that this only stops the instance, rather than terminating it,
