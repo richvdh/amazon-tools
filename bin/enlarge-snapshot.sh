@@ -30,9 +30,12 @@ snapid=`read_snapid`
 BACKUP_DEVICE=${BACKUP_DEVICE:-/dev/xvdf}
 system_backup_device=/dev/xvdf
 
-# fire up an ec2 instance which we'll use to run the resize2fs command, with the snapshot attached
-out=`sudo -u amazon "${amazon_dir}/start-instance.sh" -- --block-device-mappings "DeviceName=${BACKUP_DEVICE},Ebs={SnapshotId=$snapid,VolumeType=gp2,VolumeSize=${newsize}}"`
-
+# fire up an ec2 instance which we'll use to run the resize2fs command, with the snapshot attached.
+# we use the backup-server userdata as a cheap way to get cryptsetup-bin installed
+out=$(sudo -u amazon "${amazon_dir}/start-instance.sh" \
+    -u "${etc_dir}/userdata/backup-server.yaml" \
+    -- --block-device-mappings "DeviceName=${BACKUP_DEVICE},Ebs={SnapshotId=$snapid,VolumeType=gp2,VolumeSize=${newsize}}"
+)
 cd "$out"
 instance_id=`cat instance_id`
 ip=`cat ip`
