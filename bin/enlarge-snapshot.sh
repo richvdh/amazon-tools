@@ -14,6 +14,8 @@ set -e
 # find the tools
 amazon_dir=$(dirname "$(readlink -f "$0")")
 . "${amazon_dir}/functions.sh"
+. /etc/backup/config
+
 
 if [ $# -lt 1 ]; then
     echo "usage: enlarge-snapshot.sh <new size in G> [<new desc>]" >&2
