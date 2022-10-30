@@ -7,7 +7,7 @@
 #   instance_id - id of instance
 #   id_rsa - ssh key which has perms for admin@$ip
 #
-# TODO: figure out how to get most recent ubuntu AMI
+# TODO: figure out how to get most recent debian AMI
 # TODO: rewrite in python, or something. maybe with boto.
 
 # usage:
@@ -17,7 +17,7 @@ set -e
 
 # instance ids available at
 #   https://wiki.debian.org/Cloud/AmazonEC2Image/Bullseye
-AMI_ID=ami-0f87948fe2cf1b2a4
+AMI_ID=ami-0e1f893d6b4a9ee8c
 EC2_INSTANCE_TYPE=t2.micro
 SUBNET_ID=subnet-f423fc91
 if [ -z "$AMAZON_ZONE" ]; then
