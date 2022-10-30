@@ -120,7 +120,10 @@ run_backups
 ssh -S "ssh_control.backup" "backup@$ip" -O exit
 
 mkdir -p /root/backup
-ssh -S "ssh_control" admin@$ip df "$remote_backup_dir" >> /root/backup/df.log
+{
+    date
+    ssh -S "ssh_control" admin@$ip df "$remote_backup_dir" | tail -n +2
+} >> /root/backup/df.log
 
 # need to stop the instance before we can take a snapshot
 sudo -Hu amazon "${amazon_dir}/terminate-instance.sh" -s -w "$out"
