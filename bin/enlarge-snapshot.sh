@@ -63,25 +63,21 @@ sudo -u amazon "${amazon_dir}/amazon-ssh.sh" "$out" sudo resize2fs "$system_back
 sudo -u amazon "${amazon_dir}/terminate-instance.sh" -s -w "$out"
 
 # get the volume id
-sudo -u amazon "${amazon_dir}/aws" --region "$region" --xml din "$instance_id" > din.tmp
-vol_id=`perl -ne 'BEGIN {$v=shift}
-   /<blockDeviceMapping>/ and $b=1; next unless $b;
-   /<deviceName>(.*)<\/deviceName>/ and $d=($1 eq $v); next unless $d;
-   if(/<volumeId>(.*)<\/volumeId>/) {print "$1\n"; exit 0}' ${BACKUP_DEVICE} < din.tmp`
-rm din.tmp
+vol_id=$(sudo -u amazon "${amazon_dir}/aws" ec2 describe-instances --region "$region" \
+    --instance-ids "$instance_id" \
+    --query "Reservations[*].Instances[*].BlockDeviceMappings[?DeviceName=='$BACKUP_DEVICE'].Ebs.VolumeId" \
+    --output text
+)
 
 echo "creating S3 snapshot of resized volume" >&2
 newdesc="${newdesc:-enlarged $snapid}"
-sudo -u amazon "${amazon_dir}/aws" --region "$region" --xml csnap "$vol_id" --description "$newdesc" > csnap.out
-newsnapid=`cat csnap.out | sed -e '/<snapshotId>/! d' -e 's/.*<snapshotId>//' -e 's/<.*//'`
-
-if [ -z "$newsnapid" ]; then
-    echo "unable to retrieve snapshot id:" >&2
-    cat csnap.out >&2
-    rm csnap.out
-    exit 1
-fi
-rm csnap.out
+newsnapid=$(sudo -Hu amazon "${amazon_dir}/aws" ec2 create-snapshot \
+    --region "$region" \
+    --output text \
+    --query 'SnapshotId' \
+    --description "$desc" \
+    --volume-id "$vol_id"
+)
 
 echo "snapshot id: $newsnapid"
 mv "$snapid_file" "${snapid_file}.0"
