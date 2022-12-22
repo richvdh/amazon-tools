@@ -42,11 +42,27 @@ else
     backup_device_opts="Ebs={VolumeSize=20,VolumeType=gp2}"
 fi
 
+function dump_cloud_logs
+{
+    {
+        echo "cloud-init.log:"
+        ssh -S "ssh_control" admin@$(<"$out"/ip) cat /var/log/cloud-init.log
+        echo "-----"
+    } >&2
+}
+
+function terminate_instance
+{
+    remove_lockfile
+    sudo -Hu amazon "${amazon_dir}/terminate-instance.sh" "$out"
+}
+
+
 out=$(sudo -Hu amazon "${amazon_dir}/start-instance.sh" \
     -u "${etc_dir}/userdata/backup-server.yaml" \
     -- --block-device-mappings "DeviceName=${BACKUP_DEVICE},${backup_device_opts}"
 )
-trap 'remove_lockfile; sudo -Hu amazon "'${amazon_dir}'/terminate-instance.sh" "'$out'"' EXIT
+trap 'dump_cloud_logs; terminate_instance' EXIT
 
 cd "$out"
 instance_id=`cat instance_id`
@@ -156,3 +172,6 @@ if [ -n "$snapid" ]; then
         --region "$region" \
         --snapshot-id "$snapid"
 fi
+
+# don't dump the cloud logs
+trap 'terminate_instance' EXIT
