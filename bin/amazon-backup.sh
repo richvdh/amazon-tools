@@ -47,7 +47,10 @@ function dump_cloud_logs
     {
         echo "cloud-init.log:"
         ssh -S "ssh_control" admin@$(<"$out"/ip) cat /var/log/cloud-init.log
-        echo "-----"
+        echo "----"
+        echo "cloud-final.service log:"
+        ssh -S "ssh_control" admin@$(<"$out"/ip) journalctl -u cloud-final.service -b
+        echo "----"
     } >&2
 }
 
