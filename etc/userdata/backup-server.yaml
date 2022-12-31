@@ -1,6 +1,13 @@
 #cloud-config
 #
-# userdata config for backup-server: installs rdiff-backup and sets a shutdown job for 24 hours hence
+# userdata config for backup-server: installs rdiff-backup and sets a shutdown
+# job for 24 hours hence
+
+apt:
+  conf: |
+    Acquire {
+      Retries "5";
+    };
 
 # run apt-get upgrade at first boot
 # apt_upgrade: true
