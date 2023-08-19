@@ -88,6 +88,8 @@ if [ -z "$snapid" ]; then
     echo "formatting new backup volume"
     ssh -S "ssh_control" admin@$ip sudo mkfs -t ext4 "$system_backup_device"
 fi
+# turn off reserved blocks; no need to do this every day but it's easier than changing existing snapshots
+tune2fs -m0 "$system_backup_device"
 
 remote_backup_dir="/mnt"
 echo "mounting backup drive"
