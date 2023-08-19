@@ -28,7 +28,7 @@ starts_with_mappings={
 }
 
 def get_type(fname,deftype):
-    f = file(fname,"rb")
+    f = open(fname,"r")
     line = f.readline()
     f.close()
     rtype = deftype
@@ -46,9 +46,9 @@ def main():
     #outer.preamble = 'You will not see this in a MIME-aware mail reader.\n'
 
     parser = OptionParser()
-    
+
     parser.add_option("-o", "--output", dest="output",
-        help="write output to FILE [default %default]", metavar="FILE", 
+        help="write output to FILE [default %default]", metavar="FILE",
         default="-")
     parser.add_option("-z", "--gzip", dest="compress", action="store_true",
         help="compress output", default=False)
@@ -90,11 +90,11 @@ def main():
 
         outer.attach(msg)
 
-    if options.output is "-":
+    if options.output == "-":
         ofile = sys.stdout
     else:
-        ofile = file(options.output,"wb")
-        
+        ofile = open(options.output, "w")
+
     if options.compress:
         gfile = gzip.GzipFile(fileobj=ofile, filename = options.output )
         gfile.write(outer.as_string())
