@@ -78,6 +78,11 @@ echo 'command="rdiff-backup --server --restrict /mnt",no-port-forwarding,no-X11-
     ssh -S "ssh_control" admin@$ip sudo tee -a "~backup/.ssh/authorized_keys"
 
 if [ -n "$BACKUP_PASSPHRASE" ]; then
+    if [ -z "$snapid" ]; then
+        echo "creating encrypted drive"
+        echo -n "$BACKUP_PASSPHRASE" |
+            ssh -S "ssh_control" admin@$ip sudo cryptsetup -v luksFormat "$system_backup_device"
+    fi
     echo "unlocking encrypted drive"
     echo -n "$BACKUP_PASSPHRASE" |
         ssh -S "ssh_control" admin@$ip sudo cryptsetup open "$system_backup_device" crypt_backup
@@ -89,7 +94,7 @@ if [ -z "$snapid" ]; then
     ssh -S "ssh_control" admin@$ip sudo mkfs -t ext4 "$system_backup_device"
 fi
 # turn off reserved blocks; no need to do this every day but it's easier than changing existing snapshots
-tune2fs -m0 "$system_backup_device"
+ssh -S "ssh_control" admin@$ip sudo tune2fs -m0 "$system_backup_device"
 
 remote_backup_dir="/mnt"
 echo "mounting backup drive"
