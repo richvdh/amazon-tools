@@ -107,7 +107,7 @@ ssh -S "ssh_control" admin@$ip sudo chown backup "${remote_backup_dir}"
 
 echo "starting SSH master for backup@$ip"
 ssh -C -M -S "ssh_control.backup" -oControlPersist=yes \
-    -oStrictHostKeyChecking=yes -oUserKnownHostsFile="$out/known_hosts" \
+    -oStrictHostKeyChecking=yes -oUserKnownHostsFile="known_hosts" \
     -i id_rsa "backup@$ip" -O forward
 
 backup()
