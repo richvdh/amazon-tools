@@ -137,8 +137,9 @@ backup()
     dest="backup@$ip::${remote_backup_dir}/${path}"
     rdiff-backup $args --remote-schema "$schema" "$@" "$path" "$dest"
 
-    # remove old backups
-    rdiff-backup --remote-schema "$schema" --force --remove-older-than "${MAX_INCREMENT_AGE:-1M12h}" "$dest"
+    # remove old backups.
+    # Ignore errors, due to https://github.com/rdiff-backup/rdiff-backup/issues/616
+    rdiff-backup --remote-schema "$schema" --force --remove-older-than "${MAX_INCREMENT_AGE:-1M12h}" "$dest" || true
 
     # rotate the log
     ssh -S "ssh_control" admin@$ip sudo savelog "${remote_backup_dir}/${path}/rdiff-backup-data/backup.log"
