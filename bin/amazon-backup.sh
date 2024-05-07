@@ -57,6 +57,10 @@ function dump_cloud_logs
 function terminate_instance
 {
     remove_lockfile
+
+    # shut down the control master to avoid a perms error on the socket
+    [ -f "$out/ssh_control.backup" ] && ssh -S "$out/ssh_control.backup" "backup@$ip" -O exit
+
     sudo -Hu amazon "${amazon_dir}/terminate-instance.sh" "$out"
 }
 
@@ -141,9 +145,6 @@ backup()
 }
 
 run_backups
-
-# shut down the control master to avoid a perms error on the socket
-ssh -S "ssh_control.backup" "backup@$ip" -O exit
 
 mkdir -p /root/backup
 {
