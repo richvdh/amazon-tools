@@ -79,7 +79,7 @@ region=`cat aws_region`
 echo "adding ssh key to backup@"
 ssh_key="$(cat id_rsa.pub)"
 echo 'command="rdiff-backup --server --restrict /mnt",no-port-forwarding,no-X11-forwarding,no-pty '"$ssh_key" |
-    ssh -S "ssh_control" admin@$ip sudo tee -a "~backup/.ssh/authorized_keys"
+    ssh -S "ssh_control" admin@$ip sudo tee -a "~backup/.ssh/authorized_keys" >/dev/null
 
 if [ -n "$BACKUP_PASSPHRASE" ]; then
     if [ -z "$snapid" ]; then
