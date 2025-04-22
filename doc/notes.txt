@@ -1,8 +1,5 @@
 Bootstrapping a backup instance
-----
-
-use ./bin/bootstrap-backup-snapshot (on a local machine) to create an empty
-snapshot
+======
 
 # on host:
 sudo apt-get install lockfile-progs rdiff-backup cstream awscli
@@ -15,9 +12,6 @@ sudo -u amazon aws configure
 cd /usr/local
 
 sudo git clone http://github.com/richvdh/amazon-tools.git
-
-sudo mkdir /root/backup
-echo <snapid> | sudo tee /root/backup/snapid
 
 sudo mkdir /etc/backup
 sudo ln -s /usr/local/amazon-tools/etc/exclusions.common /etc/backup
